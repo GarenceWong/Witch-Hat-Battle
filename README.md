@@ -11,7 +11,6 @@ A fan-made, browser-based spell-drawing battle game inspired by the anime **Witc
 
 ### Fan Page
 - **Landing page** with anime-styled hero section and navigation
-- **About / World Lore** page introducing the world of Witch Hat Atelier
 
 ### Character Select
 - Choose from **4 playable apprentice witches**: Coco, Agott, Tetia, and Richeh
