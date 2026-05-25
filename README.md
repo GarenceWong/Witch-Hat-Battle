@@ -104,4 +104,4 @@ Kamome Shirahama / Kodansha · Anime © Bug Films · All rights reserved.
 
 ---
 
-*Developed by [Garence Wong](https://github.com/GarenceWong)*
+*Developed by [Garence Wong](https://github.com/GarenceWong) · Built with [Claude Code](https://claude.ai/code) by Anthropic*
