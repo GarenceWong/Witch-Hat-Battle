@@ -1,3 +1,6 @@
+import { useState, useEffect } from "react";
+import { ref, set, onValue, get } from "firebase/database";
+import { db } from "../firebase.js";
 import { SPELLS } from "../data.js";
 import { btnStyle, NavBar } from "../components/UI.jsx";
 
@@ -13,7 +16,41 @@ function statLabel(sp) {
   return `${sp.baseHeal} HEAL`;
 }
 
-export default function Loadout({ loadout, toggleLoadout, onStartGame, onNav }) {
+export default function Loadout({ loadout, toggleLoadout, onStartGame, onNav, mode, roomCode, playerRole }) {
+  const [ready,         setReady]         = useState(false);
+  const [opponentReady, setOpponentReady] = useState(false);
+
+  useEffect(() => {
+    if (mode !== "vs" || !roomCode) return;
+    const roomRef = ref(db, `rooms/${roomCode}`);
+    const unsub = onValue(roomRef, snap => {
+      if (!snap.exists()) return;
+      const room = snap.val();
+      const opponent = playerRole === "host" ? room.guest : room.host;
+      if (opponent) setOpponentReady(!!opponent.loadoutReady);
+      if (room.status === "battle") { onNav("battle"); return; }
+      // Reactively advance when both are ready (catches any order)
+      if (room.host?.loadoutReady && room.guest?.loadoutReady) {
+        set(ref(db, `rooms/${roomCode}/status`), "battle");
+      }
+    });
+    return () => unsub();
+  }, [mode, roomCode, playerRole]);
+
+  const handleReady = async () => {
+    if (mode !== "vs") { onStartGame(); return; }
+    const playerPath = `rooms/${roomCode}/${playerRole}`;
+    await set(ref(db, `${playerPath}/loadout`), loadout);
+    await set(ref(db, `${playerPath}/loadoutReady`), true);
+    setReady(true);
+    // Either player advances once both are ready
+    const snap = await get(ref(db, `rooms/${roomCode}`));
+    const room = snap.val();
+    if (room.host?.loadoutReady && room.guest?.loadoutReady) {
+      await set(ref(db, `rooms/${roomCode}/status`), "battle");
+    }
+  };
+
   return (
     <div style={{
       minHeight: "100vh",
@@ -205,31 +242,35 @@ export default function Loadout({ loadout, toggleLoadout, onStartGame, onNav }) 
             );
           })}
 
-          {/* Begin Battle button */}
+          {/* Begin Battle / Ready button */}
           <button
-            onClick={onStartGame}
-            disabled={loadout.length < 3}
+            onClick={handleReady}
+            disabled={loadout.length < 1 || (mode === "vs" && ready)}
             style={{
               ...btnStyle,
               flexShrink: 0,
-              opacity: loadout.length < 3 ? 0.35 : 1,
+              opacity: loadout.length < 1 || (mode === "vs" && ready) ? 0.35 : 1,
               padding: "14px 28px",
               fontSize: "14px",
               letterSpacing: "2px",
               whiteSpace: "nowrap",
             }}
           >
-            ⚔ Begin Battle
+            {mode === "vs"
+              ? ready
+                ? opponentReady ? "Starting..." : "Ready ✓"
+                : "⚔ Ready Up"
+              : "⚔ Begin Battle"}
           </button>
         </div>
 
         <p style={{
           fontFamily: "Cormorant Garamond", fontSize: "14px",
-          color: loadout.length >= 3 ? "#5A4A32" : "#3A2A1A",
+          color: loadout.length >= 1 ? "#5A4A32" : "#3A2A1A",
           fontStyle: "italic", margin: 0,
         }}>
-          {loadout.length < 3
-            ? `Select ${3 - loadout.length} more spell${3 - loadout.length > 1 ? "s" : ""} to continue`
+          {loadout.length < 1
+            ? "Select at least one spell to continue"
             : "You are ready."}
         </p>
       </div>

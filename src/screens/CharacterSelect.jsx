@@ -1,3 +1,6 @@
+import { useState, useEffect } from "react";
+import { ref, set, get, onValue } from "firebase/database";
+import { db } from "../firebase.js";
 import { CHARACTERS } from "../data.js";
 import { btnStyle, NavBar } from "../components/UI.jsx";
 import cocoImg   from "../assets/coco.png";
@@ -23,8 +26,53 @@ const pageStyle = {
   fontFamily: "Cormorant Garamond, serif",
 };
 
-export default function CharacterSelect({ selectedChar, setSelectedChar, onNav }) {
+export default function CharacterSelect({ selectedChar, setSelectedChar, onNav, mode, roomCode, playerRole }) {
   const selected = CHARACTERS.find((c) => c.id === selectedChar);
+
+  const [ready,      setReady]      = useState(false);
+  const [opponentReady, setOpponentReady] = useState(false);
+  const [opponentChar,  setOpponentChar]  = useState(null);
+
+  // Multiplayer: sync character selection + listen for opponent
+  useEffect(() => {
+    if (mode !== "vs" || !roomCode) return;
+    const playerPath = `rooms/${roomCode}/${playerRole}`;
+    set(ref(db, `${playerPath}/charId`), selectedChar);
+  }, [selectedChar, mode, roomCode, playerRole]);
+
+  useEffect(() => {
+    if (mode !== "vs" || !roomCode) return;
+    const roomRef = ref(db, `rooms/${roomCode}`);
+    const unsub = onValue(roomRef, snap => {
+      if (!snap.exists()) return;
+      const room = snap.val();
+      const opponent = playerRole === "host" ? room.guest : room.host;
+      if (opponent) {
+        setOpponentReady(!!opponent.charReady);
+        setOpponentChar(opponent.charId || null);
+      }
+      if (room.status === "loadout") { onNav("loadout"); return; }
+      // Reactively advance when both are ready (catches any order)
+      if (room.host?.charReady && room.guest?.charReady) {
+        set(ref(db, `rooms/${roomCode}/status`), "loadout");
+      }
+    });
+    return () => unsub();
+  }, [mode, roomCode, playerRole]);
+
+  const handleReady = async () => {
+    if (mode !== "vs") { onNav("loadout"); return; }
+    const playerPath = `rooms/${roomCode}/${playerRole}`;
+    await set(ref(db, `${playerPath}/charReady`), true);
+    await set(ref(db, `${playerPath}/charId`), selectedChar);
+    setReady(true);
+    // Either player advances once both are ready
+    const snap = await get(ref(db, `rooms/${roomCode}`));
+    const room = snap.val();
+    if (room.host?.charReady && room.guest?.charReady) {
+      await set(ref(db, `rooms/${roomCode}/status`), "loadout");
+    }
+  };
 
   return (
     <div style={pageStyle}>
@@ -326,8 +374,20 @@ export default function CharacterSelect({ selectedChar, setSelectedChar, onNav }
                 </div>
               </div>
 
+              {mode === "vs" && (
+                <div style={{
+                  fontFamily: "Cinzel", fontSize: "10px", letterSpacing: "2px",
+                  color: opponentReady ? "#77CC88" : "#6B5A3E",
+                  textAlign: "center",
+                }}>
+                  {opponentChar
+                    ? `Opponent: ${CHARACTERS.find(c => c.id === opponentChar)?.name ?? opponentChar} ${opponentReady ? "✓ Ready" : "— choosing..."}`
+                    : "Waiting for opponent..."}
+                </div>
+              )}
               <button
-                onClick={() => onNav("loadout")}
+                onClick={handleReady}
+                disabled={mode === "vs" && ready}
                 style={{
                   ...btnStyle,
                   width: "100%",
@@ -335,9 +395,12 @@ export default function CharacterSelect({ selectedChar, setSelectedChar, onNav }
                   padding: "16px",
                   fontSize: "17px",
                   letterSpacing: "2px",
+                  opacity: mode === "vs" && ready ? 0.5 : 1,
                 }}
               >
-                Select Spells →
+                {mode === "vs"
+                  ? ready ? "Waiting for opponent... ✓" : "Ready ✓"
+                  : "Select Spells →"}
               </button>
             </>
           ) : (

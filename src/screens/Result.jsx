@@ -27,21 +27,23 @@ export default function Result({ result, selectedChar, onRematch, onNewWitch, on
         }}
       >
         <div style={{ fontSize: "120px", marginBottom: "28px", lineHeight: 1 }}>
-          {result === "win" ? "✨" : "💀"}
+          {result === "win" ? "✨" : result === "draw" ? "⚖" : "💀"}
         </div>
         <h2
           style={{
             fontFamily: "Uncial Antiqua",
             fontSize: "64px",
-            color: result === "win" ? "#C9A96E" : "#8B1A1A",
+            color: result === "win" ? "#C9A96E" : result === "draw" ? "#7B9EA8" : "#8B1A1A",
             marginBottom: "16px",
             textShadow: result === "win"
               ? "0 0 40px #C9A96E55"
+              : result === "draw"
+              ? "0 0 40px #7B9EA855"
               : "0 0 40px #8B1A1A55",
             animation: "fadeIn 0.8s ease",
           }}
         >
-          {result === "win" ? "Victory!" : "Defeated..."}
+          {result === "win" ? "Victory!" : result === "draw" ? "A Draw..." : "Defeated..."}
         </h2>
         <p
           style={{
@@ -56,6 +58,8 @@ export default function Result({ result, selectedChar, onRematch, onNewWitch, on
         >
           {result === "win"
             ? `${ch.name}'s glyphs proved stronger. The Brimhat Sorcerer retreats into shadow.`
+            : result === "draw"
+            ? `Both sigils shattered at once. ${ch.name} and their opponent fall together — a rare and honourable outcome.`
             : `The Brimhat Sorcerer's magic overwhelmed ${ch.name}. But an apprentice never stops learning.`}
         </p>
         <div

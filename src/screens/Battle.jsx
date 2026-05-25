@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from "react";
+import { ref, set, get, onValue, update } from "firebase/database";
+import { db } from "../firebase.js";
 import { CHARACTERS, SPELLS, ENEMY_DATA } from "../data.js";
 import SigilCanvas from "../components/SigilCanvas.jsx";
 import cocoImg   from "../assets/coco.png";
@@ -119,23 +121,42 @@ function SpellBtn({ spell, onClick }) {
   );
 }
 
-// ── Battle log ────────────────────────────────────────────────────────────────
-function BattleLog({ log }) {
-  const ref = useRef(null);
-  useEffect(() => { if (ref.current) ref.current.scrollTop = ref.current.scrollHeight; }, [log]);
+// ── Exit confirm modal (shared) ───────────────────────────────────────────────
+function ExitModal({ mode, onStay, onFlee }) {
   return (
-    <div ref={ref} style={{
-      flex: 1, minHeight: 0, overflowY: "auto", padding: "8px 12px",
-      background: "rgba(6,3,14,0.6)", borderRadius: "10px",
-      border: "1px solid rgba(201,169,110,0.07)",
+    <div style={{
+      position: "absolute", inset: 0, zIndex: 100,
+      background: "rgba(0,0,0,0.75)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      animation: "spellSelect 0.2s ease",
     }}>
-      {log.map((l, i, arr) => (
-        <div key={i} style={{
-          fontFamily: "Cormorant Garamond", fontSize: "14px", lineHeight: "1.7",
-          color: i === arr.length - 1 ? "#D4C4A8" : "#5A4A34",
-          transition: "color 0.3s",
-        }}>{l}</div>
-      ))}
+      <div style={{
+        background: "rgba(8,4,16,0.98)",
+        border: "1px solid rgba(201,169,110,0.25)",
+        borderRadius: "18px", padding: "40px 48px",
+        textAlign: "center", maxWidth: 380,
+        boxShadow: "0 0 60px rgba(0,0,0,0.8)",
+      }}>
+        <div style={{ fontSize: "36px", marginBottom: "16px" }}>⚔</div>
+        <div style={{ fontFamily: "Cinzel", fontSize: "20px", color: "#F5E6D3", marginBottom: "12px" }}>
+          Flee the Battle?
+        </div>
+        <div style={{ fontFamily: "Cormorant Garamond", fontSize: "17px", color: "#8B7355", fontStyle: "italic", marginBottom: "32px", lineHeight: 1.6 }}>
+          {mode === "vs"
+            ? "Your progress will be lost. Your opponent wins by default."
+            : "Your progress will be lost. The Brimhat Sorcerer wins by default."}
+        </div>
+        <div style={{ display: "flex", gap: "16px", justifyContent: "center" }}>
+          <button onClick={onStay} style={{ background: "transparent", border: "1px solid rgba(201,169,110,0.3)", borderRadius: "8px", padding: "12px 28px", fontFamily: "Cinzel", fontSize: "13px", color: "#8B7355", cursor: "pointer", letterSpacing: "1px", transition: "all 0.2s" }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "#C9A96E"; e.currentTarget.style.color = "#C9A96E"; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(201,169,110,0.3)"; e.currentTarget.style.color = "#8B7355"; }}
+          >Stay</button>
+          <button onClick={onFlee} style={{ background: "rgba(139,26,26,0.25)", border: "1px solid rgba(139,26,26,0.5)", borderRadius: "8px", padding: "12px 28px", fontFamily: "Cinzel", fontSize: "13px", color: "#CC4444", cursor: "pointer", letterSpacing: "1px", transition: "all 0.2s" }}
+            onMouseEnter={e => { e.currentTarget.style.background = "rgba(139,26,26,0.45)"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "rgba(139,26,26,0.25)"; }}
+          >Flee</button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -153,6 +174,7 @@ export default function Battle({
   enemyTurnActive, setEnemyTurnActive,
   turnCount, setTurnCount,
   setResult, onNav,
+  mode, roomCode, playerRole,
 }) {
   const [playerDmg,       setPlayerDmg]       = useState(null);
   const [enemyDmg,        setEnemyDmg]        = useState(null);
@@ -160,8 +182,14 @@ export default function Battle({
   const [enemyShaking,    setEnemyShaking]    = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
 
-  const ch        = CHARACTERS.find((c) => c.id === selectedChar);
-  const enemyChar = { id: "brimhat", name: "Brimhat Sorcerer", color: ENEMY_DATA.color };
+  // VS mode state
+  const [vsState,         setVsState]         = useState(null);
+  const [oppCharId,       setOppCharId]       = useState(null);
+  const [myCastSubmitted, setMyCastSubmitted] = useState(false);
+  const prevVsState   = useRef(null);
+  const resolvingRef  = useRef(false);
+
+  const ch = CHARACTERS.find(c => c.id === selectedChar);
 
   const triggerDmg = (side, value, type) => {
     const obj = { value, type, key: Date.now() + Math.random() };
@@ -174,6 +202,153 @@ export default function Battle({
     }
   };
 
+  // ── VS: host initialises battle in Firebase ───────────────────────────────
+  useEffect(() => {
+    if (mode !== "vs" || !roomCode || playerRole !== "host") return;
+    (async () => {
+      const snap = await get(ref(db, `rooms/${roomCode}`));
+      const room = snap.val();
+      const hChar = CHARACTERS.find(c => c.id === room.host.charId);
+      const gChar = CHARACTERS.find(c => c.id === room.guest.charId);
+      await set(ref(db, `rooms/${roomCode}/battle`), {
+        turnCount: 1,
+        log: { 0: "⚔ The duel begins!" },
+        hostCharId: room.host.charId,
+        guestCharId: room.guest.charId,
+        hostHP: hChar.hp, hostMaxHP: hChar.hp, hostShield: 0,
+        guestHP: gChar.hp, guestMaxHP: gChar.hp, guestShield: 0,
+        hostCast: null, guestCast: null,
+        winner: null, lastRound: null,
+      });
+    })();
+  }, [mode, roomCode, playerRole]);
+
+  // ── VS: subscribe to room ─────────────────────────────────────────────────
+  useEffect(() => {
+    if (mode !== "vs" || !roomCode) return;
+    const unsub = onValue(ref(db, `rooms/${roomCode}`), snap => {
+      if (!snap.exists()) return;
+      const room = snap.val();
+      const opp = playerRole === "host" ? room.guest : room.host;
+      if (opp?.charId) setOppCharId(opp.charId);
+      if (!room.battle) return;
+      const b   = room.battle;
+      const prev = prevVsState.current;
+      prevVsState.current = b;
+      setVsState(b);
+
+      // Show damage floats on round resolution
+      if (prev && b.turnCount > prev.turnCount && b.lastRound) {
+        const lr       = b.lastRound;
+        const myFloat  = playerRole === "host" ? lr.host  : lr.guest;
+        const oppFloat = playerRole === "host" ? lr.guest : lr.host;
+        if (myFloat)  triggerDmg("player", myFloat.amt,  myFloat.type);
+        if (oppFloat) triggerDmg("enemy",  oppFloat.amt, oppFloat.type);
+        setMyCastSubmitted(false);
+        setCastingPhase(false);
+        setSelectedSpell(null);
+      }
+
+      if (b.winner) {
+        setResult(b.winner === playerRole ? "win" : "lose");
+        setTimeout(() => onNav("result"), 1200);
+      }
+
+      // Host resolves when both casts are present
+      if (playerRole === "host" && b.hostCast && b.guestCast && !b.winner && !resolvingRef.current) {
+        resolvingRef.current = true;
+        resolveRound(b).finally(() => { resolvingRef.current = false; });
+      }
+    });
+    return () => unsub();
+  }, [mode, roomCode, playerRole]);
+
+  // ── VS: resolve round (host only) ─────────────────────────────────────────
+  const resolveRound = async (b) => {
+    const hChar  = CHARACTERS.find(c => c.id === b.hostCharId);
+    const gChar  = CHARACTERS.find(c => c.id === b.guestCharId);
+    const hSpell = SPELLS.find(s => s.id === b.hostCast.spellId);
+    const gSpell = SPELLS.find(s => s.id === b.guestCast.spellId);
+    const hAcc   = b.hostCast.accuracy;
+    const gAcc   = b.guestCast.accuracy;
+
+    let hHP = b.hostHP, hSh = b.hostShield || 0;
+    let gHP = b.guestHP, gSh = b.guestShield || 0;
+    const logs = [];
+    let hostFloat = null, guestFloat = null;
+
+    const applySpell = (caster, spell, acc, targetHP, targetSh, selfHP, selfSh, selfMaxHP) => {
+      if (acc < 30 && spell.type === "attack") {
+        const bf = Math.round(spell.baseDmg * 0.3);
+        return { targetHP, targetSh, selfHP: Math.max(0, selfHP - bf), selfSh, selfFloat: { amt: bf, type: "backfire" }, targetFloat: null, log: `💥 Backfire! ${caster.name} takes ${bf} damage!` };
+      }
+      if (acc < 30) {
+        return { targetHP, targetSh, selfHP, selfSh, selfFloat: null, targetFloat: null, log: `${caster.name}'s sigil fades...` };
+      }
+      const mult = acc / 100;
+      if (spell.type === "attack") {
+        const pMod = caster.id === "agott" ? 1.15 : 1;
+        const dmg  = Math.round(spell.baseDmg * mult * pMod);
+        const abs  = Math.min(targetSh, dmg);
+        return { targetHP: Math.max(0, targetHP - (dmg - abs)), targetSh: Math.max(0, targetSh - abs), selfHP, selfSh, selfFloat: null, targetFloat: { amt: dmg, type: "dmg" }, log: `${spell.icon} ${caster.name} hits for ${dmg}!${abs ? ` [${abs} absorbed]` : ""}` };
+      }
+      if (spell.type === "defense") {
+        const shMod  = caster.id === "richeh" ? 1.2 : 1;
+        const shield = Math.round(spell.baseShield * mult * shMod);
+        return { targetHP, targetSh, selfHP, selfSh: selfSh + shield, selfFloat: { amt: shield, type: "shield" }, targetFloat: null, log: `${spell.icon} ${caster.name} gains ${shield} shield!` };
+      }
+      if (spell.type === "heal") {
+        const healMod = caster.id === "tetia" ? 1.3 : 1;
+        const heal    = Math.round(spell.baseHeal * mult * healMod);
+        return { targetHP, targetSh, selfHP: Math.min(selfMaxHP, selfHP + heal), selfSh, selfFloat: { amt: heal, type: "heal" }, targetFloat: null, log: `${spell.icon} ${caster.name} heals ${heal} HP!` };
+      }
+      return { targetHP, targetSh, selfHP, selfSh, selfFloat: null, targetFloat: null, log: "" };
+    };
+
+    // Apply host's spell (host=self, guest=target)
+    const hr = applySpell(hChar, hSpell, hAcc, gHP, gSh, hHP, hSh, b.hostMaxHP);
+    gHP = hr.targetHP; gSh = hr.targetSh; hHP = hr.selfHP; hSh = hr.selfSh;
+    if (hr.log) logs.push(hr.log);
+    if (hr.selfFloat)   hostFloat  = hr.selfFloat;
+    if (hr.targetFloat) guestFloat = hr.targetFloat;
+
+    // Apply guest's spell (guest=self, host=target)
+    const gr = applySpell(gChar, gSpell, gAcc, hHP, hSh, gHP, gSh, b.guestMaxHP);
+    hHP = gr.targetHP; hSh = gr.targetSh; gHP = gr.selfHP; gSh = gr.selfSh;
+    if (gr.log) logs.push(gr.log);
+    if (gr.selfFloat && !guestFloat)  guestFloat = gr.selfFloat;
+    if (gr.targetFloat) hostFloat = gr.targetFloat;
+
+    let winner = null;
+    if (hHP <= 0 && gHP <= 0) winner = "guest";
+    else if (hHP <= 0) winner = "guest";
+    else if (gHP <= 0) winner = "host";
+
+    const currentLog = b.log ? Object.values(b.log) : [];
+    const newLog = [...currentLog, ...logs].reduce((acc, v, i) => ({ ...acc, [i]: v }), {});
+
+    await update(ref(db, `rooms/${roomCode}/battle`), {
+      hostHP: hHP, hostShield: hSh,
+      guestHP: gHP, guestShield: gSh,
+      hostCast: null, guestCast: null,
+      turnCount: b.turnCount + 1,
+      log: newLog,
+      lastRound: { host: hostFloat || null, guest: guestFloat || null },
+      winner: winner || null,
+    });
+  };
+
+  // ── VS: submit my cast ────────────────────────────────────────────────────
+  const handleSpellCastVs = async (accuracy) => {
+    await update(ref(db, `rooms/${roomCode}/battle`), {
+      [`${playerRole}Cast`]: { spellId: selectedSpell, accuracy },
+    });
+    setMyCastSubmitted(true);
+    setCastingPhase(false);
+    setSelectedSpell(null);
+  };
+
+  // ── Solo: spell cast ──────────────────────────────────────────────────────
   const handleSpellCast = (accuracy) => {
     const spell    = SPELLS.find((s) => s.id === selectedSpell);
     const powerMod = ch.id === "agott" ? 1.15 : 1;
@@ -211,15 +386,12 @@ export default function Battle({
     setTimeout(() => {
       setEnemyHP((prev) => {
         if (prev <= 0) { setResult("win"); onNav("result"); return prev; }
-
         setEnemyTurnActive(true);
         setTurn("enemy");
-
         setTimeout(() => {
           const eSp    = ENEMY_DATA.spells[Math.floor(Math.random() * ENEMY_DATA.spells.length)];
           const eSpell = SPELLS.find((s) => s.id === eSp);
           const eAcc   = 40 + Math.floor(Math.random() * 45);
-
           if (eSpell.type === "attack") {
             const dmg = Math.round(eSpell.baseDmg * (eAcc / 100) * (ENEMY_DATA.power / 10));
             setPlayerShield((prevShield) => {
@@ -231,237 +403,129 @@ export default function Battle({
                 return newHP;
               });
               triggerDmg("player", dmg, "dmg");
-              setBattleLog((prev) => [
-                ...prev,
-                `🔮 Brimhat casts ${eSpell.name} for ${dmg}!` + (absorbed > 0 ? ` [${absorbed} absorbed]` : ""),
-              ]);
+              setBattleLog((prev) => [...prev, `🔮 Brimhat casts ${eSpell.name} for ${dmg}!` + (absorbed > 0 ? ` [${absorbed} absorbed]` : "")]);
               return Math.max(0, prevShield - absorbed);
             });
           } else {
             setBattleLog((prev) => [...prev, `🔮 Brimhat raises a ward.`]);
           }
-
           setTurnCount((tc) => tc + 1);
           setEnemyTurnActive(false);
           setTurn("player");
         }, 1400);
-
         return prev;
       });
     }, 300);
   };
 
-  const isEnemyActive  = turn === "enemy" || enemyTurnActive;
-  const isPlayerActive = turn === "player" && !enemyTurnActive && !castingPhase;
-  const castingSpell   = selectedSpell ? SPELLS.find((s) => s.id === selectedSpell) : null;
+  // ── Derived display values ────────────────────────────────────────────────
+  const myHPKey  = playerRole === "host" ? "hostHP"     : "guestHP";
+  const myShKey  = playerRole === "host" ? "hostShield" : "guestShield";
+  const oppHPKey = playerRole === "host" ? "guestHP"    : "hostHP";
+  const oppShKey = playerRole === "host" ? "guestShield": "hostShield";
 
-  return (
+  const oppChar    = mode === "vs" ? CHARACTERS.find(c => c.id === oppCharId) : null;
+  const oppName    = mode === "vs" ? (oppChar?.name   ?? "Opponent")        : "Brimhat Sorcerer";
+  const oppColor   = mode === "vs" ? (oppChar?.color  ?? "#8B1A1A")         : ENEMY_DATA.color;
+  const oppMaxHP   = mode === "vs" ? (oppChar?.hp     ?? 100)               : ENEMY_DATA.hp;
+  const oppImgSrc  = mode === "vs" ? (oppCharId ? CHAR_IMAGES[oppCharId] : null) : ENEMY_IMG;
+
+  const displayMyHP     = mode === "vs" ? (vsState?.[myHPKey]  ?? ch?.hp)    : playerHP;
+  const displayMyMaxHP  = mode === "vs" ? (ch?.hp ?? 100)                    : playerMaxHP;
+  const displayMyShield = mode === "vs" ? (vsState?.[myShKey]  ?? 0)         : playerShield;
+  const displayOppHP    = mode === "vs" ? (vsState?.[oppHPKey] ?? oppMaxHP)  : enemyHP;
+  const displayOppShield= mode === "vs" ? (vsState?.[oppShKey] ?? 0)         : 0;
+  const displayTurnCount= mode === "vs" ? (vsState?.turnCount  ?? 1)         : turnCount;
+  const displayLog      = mode === "vs"
+    ? (vsState?.log ? Object.values(vsState.log) : ["⚔ The duel begins!"])
+    : battleLog;
+
+  const oppHasCast  = mode === "vs" && vsState && (playerRole === "host" ? !!vsState.guestCast : !!vsState.hostCast);
+  const castingSpell = selectedSpell ? SPELLS.find(s => s.id === selectedSpell) : null;
+
+  // Solo helpers
+  const isEnemyCasting  = turn === "enemy" || enemyTurnActive;
+  const isSoloMyTurn    = turn === "player" && !enemyTurnActive && !castingPhase;
+
+  // ── Shared: sigil overlay ─────────────────────────────────────────────────
+  const SigilOverlay = () => castingPhase && castingSpell ? (
     <div style={{
-      height: "100vh",
-      background: "transparent",
-      display: "flex", flexDirection: "column", overflow: "hidden",
-      position: "relative", animation: "arenaFadeIn 0.5s ease",
-      fontFamily: "Cormorant Garamond, serif",
+      position: "absolute", inset: 0,
+      background: "rgba(0,0,0,0.78)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      zIndex: 50, animation: "spellSelect 0.25s ease",
     }}>
-
-      <BattleBackground />
-
-      {/* ── Turn bar ── */}
       <div style={{
-        flexShrink: 0, padding: "10px 24px",
-        borderBottom: "1px solid rgba(201,169,110,0.07)", zIndex: 1,
-        display: "flex", alignItems: "center",
+        background: "rgba(6,3,14,0.97)",
+        border: `2px solid ${ch.color}66`,
+        borderRadius: "20px", padding: "28px 32px",
+        boxShadow: `0 0 60px ${ch.color}33`,
+        display: "flex", flexDirection: "column", alignItems: "center", gap: "4px",
       }}>
-        {/* Back arrow */}
-        <button
-          onClick={() => setShowExitConfirm(true)}
-          style={{
-            background: "none", border: "none", cursor: "pointer",
-            color: "#6B5A3E", fontSize: "20px", padding: "0 16px 0 0",
-            lineHeight: 1, transition: "color 0.2s",
-          }}
-          onMouseEnter={e => e.currentTarget.style.color = "#C9A96E"}
-          onMouseLeave={e => e.currentTarget.style.color = "#6B5A3E"}
-        >
-          ←
-        </button>
-
-        {/* Turn status — centered */}
-        <div style={{ flex: 1, textAlign: "center" }}>
-          <div style={{
-            fontFamily: "Cinzel", fontSize: "13px", letterSpacing: "3px",
-            color: isEnemyActive ? "#8B1A1A" : castingPhase ? ch.color : "#C9A96E",
-            transition: "color 0.5s",
-          }}>
-            TURN {turnCount} &nbsp;·&nbsp;{" "}
-            {isEnemyActive
-              ? "ENEMY CASTING..."
-              : castingPhase && castingSpell
-              ? `CASTING ${castingSpell.name.toUpperCase()}`
-              : "YOUR MOVE"}
-          </div>
+        <div style={{ fontFamily: "Cinzel", fontSize: "13px", color: ch.color, letterSpacing: "3px", marginBottom: "4px" }}>
+          CASTING — {castingSpell.name.toUpperCase()}
         </div>
-
-        {/* Spacer to balance the arrow */}
-        <div style={{ width: 52 }} />
+        <SigilCanvas
+          spell={castingSpell}
+          onComplete={mode === "vs" ? handleSpellCastVs : handleSpellCast}
+          characterBonus={ch.id === "coco"}
+        />
       </div>
+    </div>
+  ) : null;
 
-      {/* ── Exit confirmation modal ── */}
-      {showExitConfirm && (
-        <div style={{
-          position: "absolute", inset: 0, zIndex: 100,
-          background: "rgba(0,0,0,0.75)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          animation: "spellSelect 0.2s ease",
-        }}>
-          <div style={{
-            background: "rgba(8,4,16,0.98)",
-            border: "1px solid rgba(201,169,110,0.25)",
-            borderRadius: "18px", padding: "40px 48px",
-            textAlign: "center", maxWidth: 380,
-            boxShadow: "0 0 60px rgba(0,0,0,0.8)",
-          }}>
-            <div style={{ fontSize: "36px", marginBottom: "16px" }}>⚔</div>
-            <div style={{
-              fontFamily: "Cinzel", fontSize: "20px",
-              color: "#F5E6D3", marginBottom: "12px",
-            }}>
-              Flee the Battle?
-            </div>
-            <div style={{
-              fontFamily: "Cormorant Garamond", fontSize: "17px",
-              color: "#8B7355", fontStyle: "italic", marginBottom: "32px", lineHeight: 1.6,
-            }}>
-              Your progress will be lost. The Brimhat Sorcerer wins by default.
-            </div>
-            <div style={{ display: "flex", gap: "16px", justifyContent: "center" }}>
-              <button
-                onClick={() => setShowExitConfirm(false)}
-                style={{
-                  background: "transparent",
-                  border: "1px solid rgba(201,169,110,0.3)",
-                  borderRadius: "8px", padding: "12px 28px",
-                  fontFamily: "Cinzel", fontSize: "13px",
-                  color: "#8B7355", cursor: "pointer",
-                  letterSpacing: "1px", transition: "all 0.2s",
-                }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = "#C9A96E"; e.currentTarget.style.color = "#C9A96E"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(201,169,110,0.3)"; e.currentTarget.style.color = "#8B7355"; }}
-              >
-                Stay
-              </button>
-              <button
-                onClick={() => onNav("landing")}
-                style={{
-                  background: "rgba(139,26,26,0.25)",
-                  border: "1px solid rgba(139,26,26,0.5)",
-                  borderRadius: "8px", padding: "12px 28px",
-                  fontFamily: "Cinzel", fontSize: "13px",
-                  color: "#CC4444", cursor: "pointer",
-                  letterSpacing: "1px", transition: "all 0.2s",
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background = "rgba(139,26,26,0.45)"; }}
-                onMouseLeave={e => { e.currentTarget.style.background = "rgba(139,26,26,0.25)"; }}
-              >
-                Flee
-              </button>
+  // ════════════════════════════════════════════════════════════════════════
+  // VS MODE — symmetric fighting-game layout
+  // ════════════════════════════════════════════════════════════════════════
+  if (mode === "vs") {
+    const isChoosing = !myCastSubmitted && !castingPhase && !vsState?.winner;
+
+    return (
+      <div style={{
+        height: "100vh", background: "transparent",
+        display: "flex", flexDirection: "column", overflow: "hidden",
+        position: "relative", fontFamily: "Cormorant Garamond, serif",
+        animation: "arenaFadeIn 0.5s ease",
+      }}>
+        <BattleBackground />
+
+        {/* ── Turn bar ── */}
+        <div style={{ flexShrink: 0, padding: "10px 24px", borderBottom: "1px solid rgba(201,169,110,0.07)", zIndex: 1, display: "flex", alignItems: "center" }}>
+          <button onClick={() => setShowExitConfirm(true)} style={{ background: "none", border: "none", cursor: "pointer", color: "#6B5A3E", fontSize: "20px", padding: "0 16px 0 0", lineHeight: 1, transition: "color 0.2s" }}
+            onMouseEnter={e => e.currentTarget.style.color = "#C9A96E"}
+            onMouseLeave={e => e.currentTarget.style.color = "#6B5A3E"}
+          >←</button>
+          <div style={{ flex: 1, textAlign: "center" }}>
+            <div style={{ fontFamily: "Cinzel", fontSize: "13px", letterSpacing: "3px", color: "#C9A96E" }}>
+              ROUND {displayTurnCount}
+              {myCastSubmitted && !oppHasCast && " · Waiting for opponent..."}
+              {myCastSubmitted && oppHasCast  && " · Resolving..."}
+              {castingPhase && ` · Casting ${castingSpell?.name ?? ""}...`}
+              {isChoosing && " · Choose Your Spell"}
             </div>
           </div>
-        </div>
-      )}
-
-      {/* ── Arena: 2×2 Pokémon layout ── */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", zIndex: 1, minHeight: 0 }}>
-
-        {/* Subtle mid-ground line */}
-        <div style={{
-          position: "absolute", bottom: 0, left: 0, right: 0, height: "1px",
-          background: "linear-gradient(to right, transparent, rgba(201,169,110,0.10), transparent)",
-          pointerEvents: "none",
-        }} />
-
-        {/* ── Top row: battle log (left) + enemy (right) ── */}
-        <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
-
-          {/* Battle log — top left, no box */}
-          <div style={{
-            width: "38%", padding: "18px 12px 10px 28px",
-            display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden",
-            gap: "10px",
-          }}>
-            <div style={{
-              fontFamily: "Cinzel", fontSize: "11px", color: "#6B5A3E",
-              letterSpacing: "3px",
-            }}>
-              BATTLE LOG
-            </div>
-            <div style={{ flex: 1, minHeight: 0, overflowY: "hidden" }}>
-              {battleLog.slice(-6).map((l, i, arr) => (
-                <div key={i} style={{
-                  fontFamily: "Cormorant Garamond", fontSize: "18px", lineHeight: "1.8",
-                  color: i === arr.length - 1 ? "#D4C4A8" : "#5A4A34",
-                  transition: "color 0.3s",
-                }}>{l}</div>
-              ))}
-            </div>
-          </div>
-
-          {/* Enemy side — top right, character left of HP bar */}
-          <div style={{
-            flex: 1, display: "flex", flexDirection: "row",
-            alignItems: "flex-start", justifyContent: "flex-end",
-            padding: "20px 300px 0 0", gap: "16px",
-            minHeight: 0, overflow: "hidden",
-          }}>
-            {/* Enemy character — left of HP card, bottom-aligned */}
-            <div style={{ alignSelf: "flex-start", display: "flex", alignItems: "flex-end" }}>
-              <img
-                src={ENEMY_IMG}
-                alt="Brimhat Sorcerer"
-                onError={(e) => { e.target.style.display = "none"; e.target.nextSibling.style.display = "flex"; }}
-                style={{
-                  maxHeight: "300px", width: "auto",
-                  transform: "scaleX(-1)",
-                  filter: `drop-shadow(0 0 28px ${ENEMY_DATA.color}99) brightness(0.75) sepia(0.4) hue-rotate(-15deg)`,
-                  animation: enemyShaking ? "shake 0.45s ease" : isEnemyActive ? "enemyCast 1.6s infinite" : "none",
-                  pointerEvents: "none",
-                }}
-              />
-              <div style={{
-                display: "none", alignItems: "flex-end", justifyContent: "center",
-                fontSize: "120px", lineHeight: 1,
-                filter: `drop-shadow(0 0 28px ${ENEMY_DATA.color}88)`,
-                animation: enemyShaking ? "shake 0.45s ease" : isEnemyActive ? "enemyCast 1.6s infinite" : "none",
-              }}>🧙</div>
-            </div>
-
-            {/* HP Card */}
-            <HPCard
-              name="Brimhat Sorcerer"
-              hp={enemyHP} maxHP={ENEMY_DATA.hp} shield={0}
-              color={ENEMY_DATA.color}
-              dmg={enemyDmg}
-              isCasting={isEnemyActive}
-              isShaking={enemyShaking}
-              style={{ minWidth: 340 }}
-            />
-          </div>
+          <div style={{ width: 52 }} />
         </div>
 
-        {/* ── Bottom row: player char (left) + player HP + spells (right) ── */}
-        <div style={{ flex: 1, display: "flex", minHeight: 0, position: "relative" }}>
+        {showExitConfirm && <ExitModal mode={mode} onStay={() => setShowExitConfirm(false)} onFlee={() => onNav("landing")} />}
 
-          {/* Player character — bottom left */}
-          <div style={{
-            flex: 1, display: "flex", alignItems: "flex-end",
-            justifyContent: "flex-start", padding: "0 0 0 340px",
-            minHeight: 0,
-          }}>
+        {/* ── Battle log (top strip) ── */}
+        <div style={{ flexShrink: 0, padding: "10px 32px 8px", zIndex: 1, minHeight: 80 }}>
+          <div style={{ fontFamily: "Cinzel", fontSize: "10px", color: "#6B5A3E", letterSpacing: "3px", marginBottom: "5px" }}>BATTLE LOG</div>
+          {displayLog.slice(-3).map((l, i, arr) => (
+            <div key={i} style={{ fontFamily: "Cormorant Garamond", fontSize: "16px", lineHeight: "1.7", color: i === arr.length - 1 ? "#D4C4A8" : "#5A4A34", transition: "color 0.3s" }}>{l}</div>
+          ))}
+        </div>
+
+        {/* ── Arena ── */}
+        <div style={{ flex: 1, display: "flex", position: "relative", zIndex: 1, minHeight: 0 }}>
+
+          {/* Left — YOUR character */}
+          <div style={{ flex: 1, display: "flex", alignItems: "flex-end", justifyContent: "flex-start", minHeight: 0, overflow: "visible" }}>
             <img
-              src={CHAR_IMAGES[selectedChar]}
-              alt={ch.name}
+              src={CHAR_IMAGES[selectedChar]} alt={ch.name}
               style={{
-                maxHeight: "120%", width: "auto",
+                maxHeight: "92%", width: "auto", marginLeft: "60px",
                 filter: `drop-shadow(0 0 32px ${ch.color}77)`,
                 animation: playerShaking ? "shake 0.45s ease" : "none",
                 pointerEvents: "none",
@@ -469,103 +533,195 @@ export default function Battle({
             />
           </div>
 
-          {/* Player HP + action area — absolutely positioned near character */}
-          <div style={{
-            position: "absolute", bottom: 80, left: "36%",
-            width: 460, display: "flex", flexDirection: "column",
-            gap: "12px",
-          }}>
+          {/* Right — OPPONENT character */}
+          <div style={{ flex: 1, display: "flex", alignItems: "flex-end", justifyContent: "flex-end", minHeight: 0, overflow: "visible" }}>
+            {oppImgSrc ? (
+              <img
+                src={oppImgSrc} alt={oppName}
+                style={{
+                  maxHeight: "92%", width: "auto", marginRight: "60px",
+                  transform: "scaleX(-1)",
+                  filter: `drop-shadow(0 0 28px ${oppColor}88)`,
+                  animation: enemyShaking ? "shake 0.45s ease" : !oppHasCast ? "enemyCast 1.6s infinite" : "none",
+                  pointerEvents: "none",
+                }}
+              />
+            ) : (
+              <div style={{ fontSize: "120px", lineHeight: 1, marginRight: "60px", filter: `drop-shadow(0 0 28px ${oppColor}88)`, animation: !oppHasCast ? "enemyCast 1.6s infinite" : "none" }}>🧙</div>
+            )}
+          </div>
+
+          {/* ── YOUR HP + spell area — absolute bottom-left ── */}
+          <div style={{ position: "absolute", bottom: 80, left: 32, width: 420, display: "flex", flexDirection: "column", gap: "12px" }}>
+            <HPCard
+              name={ch.name}
+              hp={displayMyHP} maxHP={displayMyMaxHP} shield={displayMyShield}
+              color={ch.color} dmg={playerDmg}
+              isCasting={castingPhase && !!selectedSpell} isShaking={playerShaking}
+            />
+
+            {/* Spell selection */}
+            {isChoosing && (
+              <div style={{ background: "rgba(6,3,14,0.88)", border: "1px solid rgba(201,169,110,0.14)", borderRadius: "14px", padding: "14px 16px", backdropFilter: "blur(8px)" }}>
+                <div style={{ fontFamily: "Cinzel", fontSize: "9px", color: "#6B5A3E", letterSpacing: "3px", marginBottom: "10px", textAlign: "center" }}>CHOOSE YOUR SPELL</div>
+                <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(loadout.length, 4)}, 1fr)`, gap: "8px" }}>
+                  {loadout.map(spId => {
+                    const sp = SPELLS.find(s => s.id === spId);
+                    return <SpellBtn key={sp.id} spell={sp} onClick={() => { setSelectedSpell(sp.id); setCastingPhase(true); }} />;
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Submitted + waiting */}
+            {myCastSubmitted && !vsState?.winner && (
+              <div style={{ background: "rgba(6,3,14,0.88)", border: "1px solid rgba(80,170,100,0.3)", borderRadius: "14px", padding: "14px 16px", textAlign: "center" }}>
+                <div style={{ fontFamily: "Cormorant Garamond", fontSize: "15px", color: "#77CC88", fontStyle: "italic" }}>
+                  {oppHasCast ? "✦ Both ready — resolving..." : "✓ Spell cast! Waiting for opponent..."}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ── OPPONENT HP + status — absolute bottom-right ── */}
+          <div style={{ position: "absolute", bottom: 80, right: 32, width: 360, display: "flex", flexDirection: "column", gap: "12px" }}>
+            <HPCard
+              name={oppName}
+              hp={displayOppHP} maxHP={oppMaxHP} shield={displayOppShield}
+              color={oppColor} dmg={enemyDmg}
+              isCasting={false} isShaking={enemyShaking}
+              style={{ width: "100%" }}
+            />
+
+            {/* Opponent status */}
+            {!vsState?.winner && (
+              !oppHasCast ? (
+                <div style={{ background: "rgba(6,3,14,0.88)", border: "1px solid rgba(139,26,26,0.25)", borderRadius: "14px", padding: "12px 16px", display: "flex", alignItems: "center", gap: "12px", justifyContent: "center" }}>
+                  <div style={{ fontSize: "22px", animation: "enemyCast 1.6s infinite" }}>🔮</div>
+                  <div style={{ fontFamily: "Cormorant Garamond", fontSize: "15px", color: "#A89070", fontStyle: "italic" }}>{oppName} is choosing...</div>
+                </div>
+              ) : (
+                <div style={{ background: "rgba(6,3,14,0.88)", border: "1px solid rgba(80,170,100,0.3)", borderRadius: "14px", padding: "12px 16px", textAlign: "center" }}>
+                  <div style={{ fontFamily: "Cormorant Garamond", fontSize: "15px", color: "#77CC88", fontStyle: "italic" }}>✓ {oppName} is ready</div>
+                </div>
+              )
+            )}
+          </div>
+        </div>
+
+        <SigilOverlay />
+      </div>
+    );
+  }
+
+  // ════════════════════════════════════════════════════════════════════════
+  // SOLO MODE — Pokémon layout (unchanged)
+  // ════════════════════════════════════════════════════════════════════════
+  return (
+    <div style={{
+      height: "100vh", background: "transparent",
+      display: "flex", flexDirection: "column", overflow: "hidden",
+      position: "relative", animation: "arenaFadeIn 0.5s ease",
+      fontFamily: "Cormorant Garamond, serif",
+    }}>
+      <BattleBackground />
+
+      {/* ── Turn bar ── */}
+      <div style={{ flexShrink: 0, padding: "10px 24px", borderBottom: "1px solid rgba(201,169,110,0.07)", zIndex: 1, display: "flex", alignItems: "center" }}>
+        <button onClick={() => setShowExitConfirm(true)} style={{ background: "none", border: "none", cursor: "pointer", color: "#6B5A3E", fontSize: "20px", padding: "0 16px 0 0", lineHeight: 1, transition: "color 0.2s" }}
+          onMouseEnter={e => e.currentTarget.style.color = "#C9A96E"}
+          onMouseLeave={e => e.currentTarget.style.color = "#6B5A3E"}
+        >←</button>
+        <div style={{ flex: 1, textAlign: "center" }}>
+          <div style={{ fontFamily: "Cinzel", fontSize: "13px", letterSpacing: "3px", color: isEnemyCasting ? "#8B1A1A" : castingPhase ? ch.color : "#C9A96E", transition: "color 0.5s" }}>
+            TURN {turnCount} &nbsp;·&nbsp;{" "}
+            {isEnemyCasting
+              ? "ENEMY CASTING..."
+              : castingPhase && castingSpell
+              ? `CASTING ${castingSpell.name.toUpperCase()}`
+              : "YOUR MOVE"}
+          </div>
+        </div>
+        <div style={{ width: 52 }} />
+      </div>
+
+      {showExitConfirm && <ExitModal mode={mode} onStay={() => setShowExitConfirm(false)} onFlee={() => onNav("landing")} />}
+
+      {/* ── Arena: 2×2 Pokémon layout ── */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", zIndex: 1, minHeight: 0 }}>
+        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "1px", background: "linear-gradient(to right, transparent, rgba(201,169,110,0.10), transparent)", pointerEvents: "none" }} />
+
+        {/* ── Top row ── */}
+        <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
+          {/* Battle log */}
+          <div style={{ width: "38%", padding: "18px 12px 10px 28px", display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden", gap: "10px" }}>
+            <div style={{ fontFamily: "Cinzel", fontSize: "11px", color: "#6B5A3E", letterSpacing: "3px" }}>BATTLE LOG</div>
+            <div style={{ flex: 1, minHeight: 0, overflowY: "hidden" }}>
+              {battleLog.slice(-6).map((l, i, arr) => (
+                <div key={i} style={{ fontFamily: "Cormorant Garamond", fontSize: "18px", lineHeight: "1.8", color: i === arr.length - 1 ? "#D4C4A8" : "#5A4A34", transition: "color 0.3s" }}>{l}</div>
+              ))}
+            </div>
+          </div>
+
+          {/* Enemy side */}
+          <div style={{ flex: 1, display: "flex", flexDirection: "row", alignItems: "flex-start", justifyContent: "flex-end", padding: "20px 300px 0 0", gap: "16px", minHeight: 0, overflow: "hidden" }}>
+            <div style={{ alignSelf: "flex-start", display: "flex", alignItems: "flex-end" }}>
+              <img src={ENEMY_IMG} alt="Brimhat Sorcerer"
+                onError={e => { e.target.style.display = "none"; }}
+                style={{
+                  maxHeight: "300px", width: "auto", transform: "scaleX(-1)",
+                  filter: `drop-shadow(0 0 28px ${ENEMY_DATA.color}99) brightness(0.75) sepia(0.4) hue-rotate(-15deg)`,
+                  animation: enemyShaking ? "shake 0.45s ease" : isEnemyCasting ? "enemyCast 1.6s infinite" : "none",
+                  pointerEvents: "none",
+                }}
+              />
+            </div>
+            <HPCard
+              name="Brimhat Sorcerer"
+              hp={enemyHP} maxHP={ENEMY_DATA.hp} shield={0}
+              color={ENEMY_DATA.color} dmg={enemyDmg}
+              isCasting={isEnemyCasting} isShaking={enemyShaking}
+              style={{ minWidth: 340 }}
+            />
+          </div>
+        </div>
+
+        {/* ── Bottom row ── */}
+        <div style={{ flex: 1, display: "flex", minHeight: 0, position: "relative" }}>
+          <div style={{ flex: 1, display: "flex", alignItems: "flex-end", justifyContent: "flex-start", padding: "0 0 0 340px", minHeight: 0 }}>
+            <img src={CHAR_IMAGES[selectedChar]} alt={ch.name}
+              style={{ maxHeight: "120%", width: "auto", filter: `drop-shadow(0 0 32px ${ch.color}77)`, animation: playerShaking ? "shake 0.45s ease" : "none", pointerEvents: "none" }}
+            />
+          </div>
+
+          <div style={{ position: "absolute", bottom: 80, left: "36%", width: 460, display: "flex", flexDirection: "column", gap: "12px" }}>
             <HPCard
               name={ch.name}
               hp={playerHP} maxHP={playerMaxHP} shield={playerShield}
-              color={ch.color}
-              dmg={playerDmg}
-              isCasting={castingPhase && !!selectedSpell}
-              isShaking={playerShaking}
+              color={ch.color} dmg={playerDmg}
+              isCasting={castingPhase && !!selectedSpell} isShaking={playerShaking}
             />
-
-            {/* Action container */}
-            {turn === "player" && !enemyTurnActive && !castingPhase ? (
-              <div style={{
-                background: "rgba(6,3,14,0.88)",
-                border: "1px solid rgba(201,169,110,0.14)",
-                borderRadius: "14px",
-                padding: "14px 16px",
-                backdropFilter: "blur(8px)",
-              }}>
-                <div style={{
-                  fontFamily: "Cinzel", fontSize: "9px", color: "#6B5A3E",
-                  letterSpacing: "3px", marginBottom: "10px", textAlign: "center",
-                }}>
-                  CHOOSE YOUR SPELL
-                </div>
-                <div style={{
-                  display: "grid",
-                  gridTemplateColumns: `repeat(${Math.min(loadout.length, 4)}, 1fr)`,
-                  gap: "8px",
-                }}>
-                  {loadout.map((spId) => {
-                    const sp = SPELLS.find((s) => s.id === spId);
-                    return (
-                      <SpellBtn
-                        key={sp.id} spell={sp}
-                        onClick={() => { setSelectedSpell(sp.id); setCastingPhase(true); }}
-                      />
-                    );
+            {isSoloMyTurn ? (
+              <div style={{ background: "rgba(6,3,14,0.88)", border: "1px solid rgba(201,169,110,0.14)", borderRadius: "14px", padding: "14px 16px", backdropFilter: "blur(8px)" }}>
+                <div style={{ fontFamily: "Cinzel", fontSize: "9px", color: "#6B5A3E", letterSpacing: "3px", marginBottom: "10px", textAlign: "center" }}>CHOOSE YOUR SPELL</div>
+                <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(loadout.length, 4)}, 1fr)`, gap: "8px" }}>
+                  {loadout.map(spId => {
+                    const sp = SPELLS.find(s => s.id === spId);
+                    return <SpellBtn key={sp.id} spell={sp} onClick={() => { setSelectedSpell(sp.id); setCastingPhase(true); }} />;
                   })}
                 </div>
               </div>
             ) : !castingPhase ? (
-              <div style={{
-                background: "rgba(6,3,14,0.88)",
-                border: "1px solid rgba(139,26,26,0.25)",
-                borderRadius: "14px",
-                padding: "18px 16px",
-                display: "flex", flexDirection: "column", alignItems: "center", gap: "8px",
-              }}>
+              <div style={{ background: "rgba(6,3,14,0.88)", border: "1px solid rgba(139,26,26,0.25)", borderRadius: "14px", padding: "18px 16px", display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
                 <div style={{ fontSize: "30px", animation: "enemyCast 1.6s infinite" }}>🔮</div>
-                <div style={{
-                  fontFamily: "Cormorant Garamond", fontSize: "15px",
-                  color: "#A89070", fontStyle: "italic",
-                }}>
-                  The Brimhat Sorcerer draws their glyph...
-                </div>
+                <div style={{ fontFamily: "Cormorant Garamond", fontSize: "15px", color: "#A89070", fontStyle: "italic" }}>The Brimhat Sorcerer draws their glyph...</div>
               </div>
             ) : null}
           </div>
         </div>
       </div>
 
-      {/* ── Sigil casting overlay ── */}
-      {castingPhase && castingSpell && (
-        <div style={{
-          position: "absolute", inset: 0,
-          background: "rgba(0,0,0,0.78)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          zIndex: 50, animation: "spellSelect 0.25s ease",
-        }}>
-          <div style={{
-            background: "rgba(6,3,14,0.97)",
-            border: `2px solid ${ch.color}66`,
-            borderRadius: "20px", padding: "28px 32px",
-            boxShadow: `0 0 60px ${ch.color}33`,
-            display: "flex", flexDirection: "column", alignItems: "center", gap: "4px",
-          }}>
-            <div style={{
-              fontFamily: "Cinzel", fontSize: "13px", color: ch.color,
-              letterSpacing: "3px", marginBottom: "4px",
-            }}>
-              CASTING — {castingSpell.name.toUpperCase()}
-            </div>
-            <SigilCanvas
-              spell={castingSpell}
-              onComplete={handleSpellCast}
-              characterBonus={ch.id === "coco"}
-            />
-          </div>
-        </div>
-      )}
-
+      <SigilOverlay />
     </div>
   );
 }

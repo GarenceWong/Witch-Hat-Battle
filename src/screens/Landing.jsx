@@ -101,7 +101,7 @@ export default function Landing({ onNav }) {
           animation: "fadeIn 1.6s ease",
         }}>
           <button
-            onClick={() => onNav("characters")}
+            onClick={() => onNav("modeselect")}
             style={{
               ...btnStyle,
               fontSize: "14px",
@@ -129,7 +129,7 @@ export default function Landing({ onNav }) {
         padding: "18px 0 14px",
         background: "linear-gradient(to bottom, rgba(10,6,18,0.7), transparent)",
       }}>
-        {[["landing","Home"],["characters","Play"]].map(([s,l]) => (
+        {[["landing","Home"],["modeselect","Play"]].map(([s,l]) => (
           <button
             key={s}
             onClick={() => onNav(s)}
