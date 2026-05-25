@@ -1,0 +1,79 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Uncial+Antiqua&display=swap');
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: #1A1210;
+  color: #F5E6D3;
+  font-family: 'Cormorant Garamond', serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%  { transform: translateX(-9px) rotate(-1deg); }
+  40%  { transform: translateX(9px)  rotate(1deg);  }
+  60%  { transform: translateX(-6px); }
+  80%  { transform: translateX(6px);  }
+}
+
+@keyframes floatDmg {
+  0%   { opacity: 1; transform: translateX(-50%) translateY(0)   scale(0.7); }
+  20%  { opacity: 1; transform: translateX(-50%) translateY(-12px) scale(1.2); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-52px) scale(0.9); }
+}
+
+@keyframes ringPulse {
+  0%, 100% { opacity: 0.7; transform: scale(1);    }
+  50%       { opacity: 1;   transform: scale(1.06); }
+}
+
+@keyframes castGlow {
+  0%, 100% { filter: brightness(1);   }
+  50%       { filter: brightness(1.3); }
+}
+
+@keyframes enemyCast {
+  0%, 100% { transform: translateY(0)   rotate(0deg);  }
+  33%       { transform: translateY(-7px) rotate(-4deg); }
+  66%       { transform: translateY(-4px) rotate(4deg);  }
+}
+
+@keyframes spellSelect {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+@keyframes arenaFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
