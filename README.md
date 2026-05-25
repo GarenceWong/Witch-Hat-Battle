@@ -23,7 +23,7 @@ A fan-made, browser-based spell-drawing battle game inspired by the anime **Witc
 ### Character Select
 - Choose from **4 playable apprentice witches**: Coco, Agott, Tetia, and Richeh
 - Each character has unique **stats, lore, and a passive ability** that affects gameplay
-- Guild Wars-inspired layout: full-body character display, face icon selector, stat/lore panel
+- Full-body character display, face icon selector, and a stat/lore info panel
 
 ### Spell Loadout
 - Pick **1–4 spells** from the available pool
@@ -31,7 +31,7 @@ A fan-made, browser-based spell-drawing battle game inspired by the anime **Witc
 - Bottom loadout bar shows selected spells at a glance
 
 ### Battle Screen
-- **Pokémon-inspired layout**: your witch in the bottom-left, the opponent in the top-right
+- Your witch in the bottom-left, the opponent in the top-right
 - **Sigil drawing mechanic**: select a spell, trace its sigil on the canvas
 - HP bars, shield tracking, floating damage numbers, and shake animations on hit
 - Animated battle background with drifting sigil glyphs, sparkles, and rising embers
