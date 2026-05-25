@@ -383,38 +383,43 @@ export default function Battle({
     setCastingPhase(false);
     setSelectedSpell(null);
 
+    // Capture the new enemy HP synchronously so we don't put side effects
+    // inside a state updater (which React may call more than once).
+    let newEnemyHP = enemyHP;
+    if (accuracy >= 30 && spell.type === "attack") {
+      const dmg = Math.round(spell.baseDmg * (accuracy / 100) * powerMod);
+      newEnemyHP = Math.max(0, enemyHP - dmg);
+    }
+
     setTimeout(() => {
-      setEnemyHP((prev) => {
-        if (prev <= 0) { setResult("win"); onNav("result"); return prev; }
-        setEnemyTurnActive(true);
-        setTurn("enemy");
-        setTimeout(() => {
-          const eSp    = ENEMY_DATA.spells[Math.floor(Math.random() * ENEMY_DATA.spells.length)];
-          const eSpell = SPELLS.find((s) => s.id === eSp);
-          const eAcc   = 40 + Math.floor(Math.random() * 45);
-          if (eSpell.type === "attack") {
-            const dmg = Math.round(eSpell.baseDmg * (eAcc / 100) * (ENEMY_DATA.power / 10));
-            setPlayerShield((prevShield) => {
-              const absorbed  = Math.min(prevShield, dmg);
-              const remaining = dmg - absorbed;
-              setPlayerHP((prevHP) => {
-                const newHP = Math.max(0, prevHP - remaining);
-                if (newHP <= 0) setTimeout(() => { setResult("lose"); onNav("result"); }, 400);
-                return newHP;
-              });
-              triggerDmg("player", dmg, "dmg");
-              setBattleLog((prev) => [...prev, `🔮 Brimhat casts ${eSpell.name} for ${dmg}!` + (absorbed > 0 ? ` [${absorbed} absorbed]` : "")]);
-              return Math.max(0, prevShield - absorbed);
+      if (newEnemyHP <= 0) { setResult("win"); onNav("result"); return; }
+      setEnemyTurnActive(true);
+      setTurn("enemy");
+      setTimeout(() => {
+        const eSp    = ENEMY_DATA.spells[Math.floor(Math.random() * ENEMY_DATA.spells.length)];
+        const eSpell = SPELLS.find((s) => s.id === eSp);
+        const eAcc   = 40 + Math.floor(Math.random() * 45);
+        if (eSpell.type === "attack") {
+          const dmg = Math.round(eSpell.baseDmg * (eAcc / 100) * (ENEMY_DATA.power / 10));
+          setPlayerShield((prevShield) => {
+            const absorbed  = Math.min(prevShield, dmg);
+            const remaining = dmg - absorbed;
+            setPlayerHP((prevHP) => {
+              const newHP = Math.max(0, prevHP - remaining);
+              if (newHP <= 0) setTimeout(() => { setResult("lose"); onNav("result"); }, 400);
+              return newHP;
             });
-          } else {
-            setBattleLog((prev) => [...prev, `🔮 Brimhat raises a ward.`]);
-          }
-          setTurnCount((tc) => tc + 1);
-          setEnemyTurnActive(false);
-          setTurn("player");
-        }, 1400);
-        return prev;
-      });
+            triggerDmg("player", dmg, "dmg");
+            setBattleLog((prev) => [...prev, `🔮 Brimhat casts ${eSpell.name} for ${dmg}!` + (absorbed > 0 ? ` [${absorbed} absorbed]` : "")]);
+            return Math.max(0, prevShield - absorbed);
+          });
+        } else {
+          setBattleLog((prev) => [...prev, `🔮 Brimhat raises a ward.`]);
+        }
+        setTurnCount((tc) => tc + 1);
+        setEnemyTurnActive(false);
+        setTurn("player");
+      }, 1400);
     }, 300);
   };
 

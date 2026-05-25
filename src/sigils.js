@@ -25,62 +25,80 @@ export function generateSigil(type) {
     // ── Watershot Seal (WHA image): ring + S-curve + water-drop + T-stem
     //    + 8 T-keystones ────────────────────────────────────────────────────
     case "watershot_seal": {
-      const R = 82;
+      const R = 125;
 
       // 1. Outer ring
-      for (let i = 0; i <= 56; i++) {
-        const a = (i / 56) * Math.PI * 2;
+      for (let i = 0; i <= 72; i++) {
+        const a = (i / 72) * Math.PI * 2;
         pts.push({ x: cx + R * Math.cos(a), y: cy + R * Math.sin(a) });
       }
       pts.push(null);
 
-      // 2. S-curve: two smooth semicircles sharing a tangent at the midpoint.
-      //    Upper semicircle bows RIGHT; lower semicircle bows LEFT.
-      //    Both have radius 9, centres vertically ±9 from cy, axis at cx−8.
-      const sCx = cx - 8, sR = 9;
-      // Upper arc: centre (sCx, cy−sR), −π/2 → +π/2 through 0 (rightward bow)
-      for (let i = 0; i <= 18; i++) {
-        const a = -Math.PI / 2 + (i / 18) * Math.PI;
-        pts.push({ x: sCx + sR * Math.cos(a), y: (cy - sR) + sR * Math.sin(a) });
+      // 2. Centre S-curve: two stacked ELLIPTICAL arcs — long & slim (sRy=21 →
+      //    84px tall, only ±13 bow). Inverted: upper arc bows left, lower bows right.
+      const sCx = cx, sRx = 13, sRy = 21;
+      for (let i = 0; i <= 28; i++) {
+        const a = -Math.PI / 2 + (i / 28) * Math.PI;
+        pts.push({ x: sCx - sRx * Math.cos(a), y: (cy - sRy) + sRy * Math.sin(a) });
       }
-      // Lower arc: centre (sCx, cy+sR), −π/2 → −3π/2 through −π (leftward bow)
-      for (let i = 0; i <= 18; i++) {
-        const a = -Math.PI / 2 - (i / 18) * Math.PI;
-        pts.push({ x: sCx + sR * Math.cos(a), y: (cy + sR) + sR * Math.sin(a) });
+      for (let i = 0; i <= 28; i++) {
+        const a = -Math.PI / 2 - (i / 28) * Math.PI;
+        pts.push({ x: sCx - sRx * Math.cos(a), y: (cy + sRy) + sRy * Math.sin(a) });
       }
       pts.push(null);
 
-      // 3. Water-drop (right side of centre, top-aligned with S-curve)
-      //    Teardrop: arc from lower-left over top to lower-right, then V to tip
-      const ddR = 7, ddCx = cx + 10, ddCy = cy - 9, ddTipY = cy + 5;
-      for (let i = 0; i <= 20; i++) {
-        const a = (2 * Math.PI / 3) + (i / 20) * (5 * Math.PI / 3);
-        pts.push({ x: ddCx + ddR * Math.cos(a), y: ddCy + ddR * Math.sin(a) });
+      // 3. TOP raindrop — round TOP, pointed BOTTOM. Sits in the upper (now
+      //    left-bowing) bend, on the right. Skinny bulb (rRx=7,rRy=11); tip down.
+      const rRx = 7, rRy = 11, rCx = cx + 13, rCy = cy - 20, rTipY = cy - 2;
+      for (let i = 0; i <= 24; i++) {
+        const a = (2 * Math.PI / 3) + (i / 24) * (5 * Math.PI / 3);
+        pts.push({ x: rCx + rRx * Math.cos(a), y: rCy + rRy * Math.sin(a) });
       }
-      pts.push({ x: ddCx, y: ddTipY });
-      pts.push({ x: ddCx + ddR * Math.cos(2 * Math.PI / 3), y: ddCy + ddR * Math.sin(2 * Math.PI / 3) });
+      pts.push({ x: rCx, y: rTipY });
+      pts.push({ x: rCx + rRx * Math.cos(2 * Math.PI / 3), y: rCy + rRy * Math.sin(2 * Math.PI / 3) });
       pts.push(null);
 
-      // 4. Bottom vertical stem + horizontal T-bar (just below centre symbol)
-      pts.push({ x: cx + 1, y: cy + 20 }, { x: cx + 1, y: cy + 36 });
-      pts.push(null);
-      pts.push({ x: cx - 9, y: cy + 36 }, { x: cx + 11, y: cy + 36 });
+      // 4. BOTTOM flame — pointed TOP, round bottom. Sits in the lower (now
+      //    right-bowing) bend, on the left. Skinny bulb (lRx=7,lRy=11); tip up.
+      const lRx = 7, lRy = 11, lCx = cx - 13, lCy = cy + 20, lTipY = cy + 2;
+      for (let i = 0; i <= 24; i++) {
+        const a = -Math.PI / 3 + (i / 24) * (5 * Math.PI / 3);
+        pts.push({ x: lCx + lRx * Math.cos(a), y: lCy + lRy * Math.sin(a) });
+      }
+      pts.push({ x: lCx, y: lTipY });
+      pts.push({ x: lCx + lRx * Math.cos(-Math.PI / 3), y: lCy + lRy * Math.sin(-Math.PI / 3) });
       pts.push(null);
 
-      // 5. Eight T-keystones: crossbar just outside the ring, stem crosses inward
+      // 5. Bottom vertical stem — starts at cy+54, leaving a clear gap below the S
+      //    (S bottom ≈cy+42), down to the 6-o'clock keystone. ~8px steps, no dead-zones.
+      for (let i = 0; i <= 4; i++) {
+        pts.push({ x: cx, y: cy + 54 + i * 8 });
+      }
+      pts.push(null);
+
+      // 5b. Second (smaller) crossbar on the bottom T — near the head (the main
+      //     6-o'clock bar at ≈cy+95). Placed at cy+84, closer to the head.
+      pts.push({ x: cx - 8, y: cy + 84 });
+      pts.push({ x: cx,     y: cy + 84 });
+      pts.push({ x: cx + 8, y: cy + 84 });
+      pts.push(null);
+
+      // 6. Eight T-keystones INSIDE the ring (crossbar at R-30=95, pushed out
+      //    toward the ring). Crossbar is the outer cap; stem points inward to R-54.
       for (let k = 0; k < 8; k++) {
         const a  = (k / 8) * Math.PI * 2 - Math.PI / 2; // 0 = 12 o'clock
         const pa = a + Math.PI / 2;
-        const L  = 8;
-        const barCx = cx + (R + 5) * Math.cos(a);
-        const barCy = cy + (R + 5) * Math.sin(a);
-        // crossbar (horizontal, outside the ring)
+        const L  = 13;
+        const barR = R - 30;
+        const barCx = cx + barR * Math.cos(a);
+        const barCy = cy + barR * Math.sin(a);
+        // crossbar (tangent to ring — the outer cap of the T)
         pts.push({ x: barCx - L * Math.cos(pa), y: barCy - L * Math.sin(pa) });
         pts.push({ x: barCx + L * Math.cos(pa), y: barCy + L * Math.sin(pa) });
         pts.push(null);
-        // stem from outside to inside ring
+        // stem from crossbar pointing inward toward centre
         pts.push({ x: barCx, y: barCy });
-        pts.push({ x: cx + (R - 10) * Math.cos(a), y: cy + (R - 10) * Math.sin(a) });
+        pts.push({ x: cx + (R - 54) * Math.cos(a), y: cy + (R - 54) * Math.sin(a) });
         pts.push(null);
       }
 
@@ -113,12 +131,16 @@ export function generateSigil(type) {
       }
       pts.push(null);
 
-      // Vertical bar of the cross
-      pts.push({ x: cx, y: cy - R }, { x: cx, y: cy + R });
+      // Vertical bar — 17 points at ~10px intervals so no dead-zones
+      for (let i = 0; i <= 16; i++) {
+        pts.push({ x: cx, y: cy - R + i * (2 * R / 16) });
+      }
       pts.push(null);
 
-      // Horizontal bar of the cross
-      pts.push({ x: cx - R, y: cy }, { x: cx + R, y: cy });
+      // Horizontal bar — 17 points at ~10px intervals
+      for (let i = 0; i <= 16; i++) {
+        pts.push({ x: cx - R + i * (2 * R / 16), y: cy });
+      }
       pts.push(null);
 
       // Four filled dots at top / right / bottom / left intersections
@@ -238,8 +260,16 @@ export function calcAccuracy(drawn, template) {
   const tPts = template.filter(p => p !== null);
   if (drawn.length < 8 || tPts.length === 0) return 0;
 
-  const THRESH = 26;         // px — "close enough to be on-target"
-  const SEGMENTS = 10;       // number of sections to check for uniformity
+  const THRESH      = 24;  // px — generous window for coverage & uniformity
+  const THRESH_PREC = 6;   // px — strict: must be ON the line. R=125 ring interior is
+                           // 54% of canvas, but only ~18% is within 6px of the ring —
+                           // so filling the ring scores ~18% precision → backfire.
+  const SEGMENTS  = 12;
+  const CENTRE_R  = 55;   // px from canvas centre — splits ring zone vs centre zone
+  const CX = 150, CY = 150;
+
+  const centerPts = tPts.filter(p => Math.hypot(p.x - CX, p.y - CY) <= CENTRE_R);
+  const hasCentre = centerPts.length > 5;
 
   // ── 1. Coverage ──────────────────────────────────────────────────────────
   let covered = 0;
@@ -250,11 +280,24 @@ export function calcAccuracy(drawn, template) {
   }
   const coverageScore = covered / tPts.length;
 
-  // ── 2. Precision ─────────────────────────────────────────────────────────
+  // Centre-zone coverage used for gating
+  let covCenterCount = 0;
+  if (hasCentre) {
+    for (const tp of centerPts) {
+      for (const dp of drawn) {
+        if (Math.hypot(tp.x - dp.x, tp.y - dp.y) < THRESH) { covCenterCount++; break; }
+      }
+    }
+  }
+  const covCenter = hasCentre ? covCenterCount / centerPts.length : 1;
+
+  // ── 2. Precision (tight THRESH_PREC) ─────────────────────────────────────
+  // Only drawn points actually ON the template line count. Coloring the whole
+  // canvas leaves most strokes far from any template point → low precision → low score.
   let onTarget = 0;
   for (const dp of drawn) {
     for (const tp of tPts) {
-      if (Math.hypot(tp.x - dp.x, tp.y - dp.y) < THRESH) { onTarget++; break; }
+      if (Math.hypot(tp.x - dp.x, tp.y - dp.y) < THRESH_PREC) { onTarget++; break; }
     }
   }
   const precisionScore = onTarget / drawn.length;
@@ -272,7 +315,48 @@ export function calcAccuracy(drawn, template) {
   }
   const uniformityScore = segsCovered / SEGMENTS;
 
-  // ── Weighted total ────────────────────────────────────────────────────────
-  const raw = 0.45 * coverageScore + 0.35 * precisionScore + 0.20 * uniformityScore;
-  return Math.round(raw * 100);
+  // ── 4. Angular coverage (OUTER points only) ──────────────────────────────
+  // Build 12 angular sectors from the outer template points (radius > 0.6·maxR
+  // — the ring / keystone caps, NOT the compact centre cluster). A straight line
+  // touches the ring in only one direction, lighting up ~2–4 sectors; the real
+  // sigil's ring spans all 12. Using centre points here would fail — any line
+  // through the middle grazes the S/drops, which sit at many angles.
+  let maxR = 0;
+  for (const tp of tPts) maxR = Math.max(maxR, Math.hypot(tp.x - CX, tp.y - CY));
+  const ANG_R = 0.6 * maxR;
+  const ASECTORS = 12;
+  const secHas = new Array(ASECTORS).fill(false);
+  const secHit = new Array(ASECTORS).fill(false);
+  for (const tp of tPts) {
+    if (Math.hypot(tp.x - CX, tp.y - CY) < ANG_R) continue;
+    const ang = Math.atan2(tp.y - CY, tp.x - CX);                 // -π … π
+    const idx = Math.floor(((ang + Math.PI) / (2 * Math.PI)) * ASECTORS) % ASECTORS;
+    secHas[idx] = true;
+    if (!secHit[idx]) {
+      for (const dp of drawn) {
+        if (Math.hypot(tp.x - dp.x, tp.y - dp.y) < THRESH) { secHit[idx] = true; break; }
+      }
+    }
+  }
+  let secCov = 0, secTot = 0;
+  for (let s = 0; s < ASECTORS; s++) if (secHas[s]) { secTot++; if (secHit[s]) secCov++; }
+  const angular = secTot ? secCov / secTot : 1;
+
+  // ── Weighted total + gates ───────────────────────────────────────────────
+  // Precision is multiplicative: it gates coverage + uniformity rather than being
+  // just another additive term. This means coloring the whole canvas (high coverage,
+  // low precision ~0.20) yields raw ≈ 0.20 → backfire, not a free 65%.
+  //
+  // Formula: precision × (0.60·coverage + 0.20·uniformity + 0.20)
+  //   • perfect trace (P=1, C=1, U=1) → 1.0 → 100
+  //   • good trace    (P=0.78, C=0.88, U=0.85) → 0.78×0.908 ≈ 0.71 → ~64 after gates
+  //   • full scribble (P=0.20, C=1, U=1) → 0.20×1.0 = 0.20 → 20 (backfire)
+  //
+  // centreGate: covering only the ring (untouched centre symbol) caps the score.
+  // angularGate: ramps 0→1 across angular coverage 0.3→0.9, so a line (~0.3) is
+  //   crushed while a full trace (ring covers all sectors → ~1.0) is unaffected.
+  const centreGate  = hasCentre ? (0.35 + 0.65 * Math.min(1, covCenter * 2.5)) : 1;
+  const angularGate = Math.max(0, Math.min(1, (angular - 0.3) / 0.6));
+  const raw = precisionScore * (0.60 * coverageScore + 0.20 * uniformityScore + 0.20);
+  return Math.round(raw * centreGate * angularGate * 100);
 }
