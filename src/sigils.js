@@ -6,6 +6,15 @@ export function generateSigil(type) {
   const cx = 150, cy = 150;
   const pts = [];
 
+  // Sample a straight segment into pts every ~gap px (no dead-zones at THRESH_PREC).
+  const line = (x0, y0, x1, y1, gap = 4) => {
+    const n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0) / gap));
+    for (let s = 0; s <= n; s++) {
+      const t = s / n;
+      pts.push({ x: x0 + t * (x1 - x0), y: y0 + t * (y1 - y0) });
+    }
+  };
+
   switch (type) {
 
     // ── Flan Gale: two concentric open arcs (C-shape, opening right) ─────────
@@ -99,6 +108,133 @@ export function generateSigil(type) {
         // stem from crossbar pointing inward toward centre
         pts.push({ x: barCx, y: barCy });
         pts.push({ x: cx + (R - 54) * Math.cos(a), y: cy + (R - 54) * Math.sin(a) });
+        pts.push(null);
+      }
+
+      return pts;
+    }
+
+    // ── Pyreball Seal (WHA image): ring + triangle-with-rays + stem + 5 arrows ──
+    case "pyreball_seal": {
+      const R = 125;
+
+      // 1. Outer ring
+      for (let i = 0; i <= 72; i++) {
+        const a = (i / 72) * Math.PI * 2;
+        pts.push({ x: cx + R * Math.cos(a), y: cy + R * Math.sin(a) });
+      }
+      pts.push(null);
+
+      // 2. Triangle pointing UP with extended vertices.
+      //    Each side continues 12px past each corner, creating the small ray lines
+      //    visible at every vertex in the reference image.
+      //    Sampling every ~5px — no dead-zones at THRESH_PREC=6.
+      const tR = 40, extLen = 12;
+      const triV = [
+        { x: cx + tR * Math.cos(-Math.PI / 2),    y: cy + tR * Math.sin(-Math.PI / 2)    }, // top
+        { x: cx + tR * Math.cos(Math.PI / 6),     y: cy + tR * Math.sin(Math.PI / 6)     }, // bottom-right
+        { x: cx + tR * Math.cos(5 * Math.PI / 6), y: cy + tR * Math.sin(5 * Math.PI / 6) }, // bottom-left
+      ];
+      for (let e = 0; e < 3; e++) {
+        const v0 = triV[e], v1 = triV[(e + 1) % 3];
+        const dx = v1.x - v0.x, dy = v1.y - v0.y;
+        const edgeLen = Math.hypot(dx, dy);
+        const ux = dx / edgeLen, uy = dy / edgeLen;
+        // Start extLen before v0, end extLen after v1
+        const x0 = v0.x - ux * extLen, y0 = v0.y - uy * extLen;
+        const x1 = v1.x + ux * extLen, y1 = v1.y + uy * extLen;
+        const steps = Math.ceil((edgeLen + 2 * extLen) / 5);
+        for (let s = 0; s <= steps; s++) {
+          const t = s / steps;
+          pts.push({ x: x0 + t * (x1 - x0), y: y0 + t * (y1 - y0) });
+        }
+        pts.push(null);
+      }
+
+      // 3. Vertical stem — base midpoint (cx, cy+20) down to cy+70
+      const stemY0 = cy + tR * Math.sin(Math.PI / 6);
+      const stemY1 = cy + 70;
+      for (let s = 0; s <= 6; s++) {
+        pts.push({ x: cx, y: stemY0 + s * (stemY1 - stemY0) / 6 });
+      }
+      pts.push(null);
+
+      // 4. Five inward-pointing ARROW glyphs (shaft + forked arrowhead), 72° apart
+      //    starting ~11 o'clock. Each arrow's head points at the central fire triangle;
+      //    the shaft trails outward toward the ring, with two barbs forking off the tip.
+      const tipR = 66, shaftLen = 20, barbLen = 15;
+      const barbSpread = Math.PI / 5; // 36°
+      for (let k = 0; k < 5; k++) {
+        const a    = (k / 5) * Math.PI * 2 - 2 * Math.PI / 3; // 0 = 11 o'clock
+        const tipX = cx + tipR * Math.cos(a);                 // arrowhead point (inner)
+        const tipY = cy + tipR * Math.sin(a);
+        const shX  = cx + (tipR + shaftLen) * Math.cos(a);    // shaft tail (outer)
+        const shY  = cy + (tipR + shaftLen) * Math.sin(a);
+        // shaft (outer tail → inner tip)
+        line(shX, shY, tipX, tipY);
+        pts.push(null);
+        // forked arrowhead: barb → tip → barb (barbs open back outward)
+        const b1x = tipX + barbLen * Math.cos(a + barbSpread);
+        const b1y = tipY + barbLen * Math.sin(a + barbSpread);
+        const b2x = tipX + barbLen * Math.cos(a - barbSpread);
+        const b2y = tipY + barbLen * Math.sin(a - barbSpread);
+        line(b1x, b1y, tipX, tipY);
+        line(tipX, tipY, b2x, b2y);
+        pts.push(null);
+      }
+
+      return pts;
+    }
+
+    // ── Billowing Collection (WHA image): ring + 4 thin loops + 4 bowtie marks ─
+    case "billowing_collection": {
+      const R = 125;
+
+      // 1. Outer ring — 73 pts, ~10.8px spacing → midpoint gap 5.4px < THRESH_PREC ✓
+      for (let i = 0; i <= 72; i++) {
+        const a = (i / 72) * Math.PI * 2;
+        pts.push({ x: cx + R * Math.cos(a), y: cy + R * Math.sin(a) });
+      }
+      pts.push(null);
+
+      // 2. Centre flower — four THIN elongated loops (one per cardinal axis), each
+      //    starting & ending at the centre. Lens loop: lx = (pL/2)(1−cos t) runs
+      //    0→pL→0 along the axis; ly = pW·sin t gives the slim perpendicular swell.
+      const pL = 32, pW = 8;
+      const petalDirs = [0, Math.PI / 2, Math.PI, 3 * Math.PI / 2];
+      for (const pa of petalDirs) {
+        const ca = Math.cos(pa), sa = Math.sin(pa);
+        for (let i = 0; i <= 40; i++) {
+          const t  = (i / 40) * Math.PI * 2;
+          const lx = (pL / 2) * (1 - Math.cos(t));
+          const ly = pW * Math.sin(t);
+          pts.push({ x: cx + lx * ca - ly * sa, y: cy + lx * sa + ly * ca });
+        }
+        pts.push(null);
+      }
+
+      // 3. Four bowtie/hourglass marks at cardinal positions (top/right/bottom/left).
+      //    Each is two triangles meeting at a central waist, with flat outer caps;
+      //    the bowtie axis points radially (waist at the mark centre).
+      const posR = 74, halfLen = 15, halfWid = 12;
+      const cardAngles = [-Math.PI / 2, 0, Math.PI / 2, Math.PI];
+      for (const a of cardAngles) {
+        const scx = cx + posR * Math.cos(a), scy = cy + posR * Math.sin(a);
+        const rx = Math.cos(a),  ry = Math.sin(a);   // radial (outward)
+        const tx = -Math.sin(a), ty = Math.cos(a);   // tangential
+        const oL = { x: scx + halfLen * rx + halfWid * tx, y: scy + halfLen * ry + halfWid * ty }; // outer-left
+        const oR = { x: scx + halfLen * rx - halfWid * tx, y: scy + halfLen * ry - halfWid * ty }; // outer-right
+        const iL = { x: scx - halfLen * rx + halfWid * tx, y: scy - halfLen * ry + halfWid * ty }; // inner-left
+        const iR = { x: scx - halfLen * rx - halfWid * tx, y: scy - halfLen * ry - halfWid * ty }; // inner-right
+        // outer triangle: cap (oL→oR) + sides to the centre waist
+        line(oL.x, oL.y, oR.x, oR.y);
+        line(oR.x, oR.y, scx, scy);
+        line(scx, scy, oL.x, oL.y);
+        pts.push(null);
+        // inner half: just the two diagonals from the waist toward the centre —
+        // NO inner cap (that line sat too close to the centre loops).
+        line(scx, scy, iL.x, iL.y);
+        line(scx, scy, iR.x, iR.y);
         pts.push(null);
       }
 

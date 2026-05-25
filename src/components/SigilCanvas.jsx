@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { generateSigil, calcAccuracy } from "../sigils.js";
 import { btnStyle } from "./UI.jsx";
 
-export default function SigilCanvas({ spell, onComplete, characterBonus }) {
+export default function SigilCanvas({ spell, onComplete, accBonus = 0 }) {
   const canvasRef = useRef(null);
   const [drawing, setDrawing] = useState(false);
   const [points, setPoints] = useState([]);
@@ -163,7 +163,7 @@ export default function SigilCanvas({ spell, onComplete, characterBonus }) {
   const castSpell = () => {
     const validPts = points.filter((p) => p !== null);
     let acc = calcAccuracy(validPts, template);
-    if (characterBonus) acc = Math.min(100, acc + 10);
+    if (accBonus) acc = Math.min(100, acc + accBonus);
     setAccuracy(acc);
     setDone(true);
     setTimeout(() => onComplete(acc), 1200);

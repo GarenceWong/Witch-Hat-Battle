@@ -161,6 +161,203 @@ function ExitModal({ mode, onStay, onFlee }) {
   );
 }
 
+// ── Watershot cast animation ──────────────────────────────────────────────────
+const WATER_ORBS = [
+  { size: 22, ox: 0,   oy: 0,   delay: 0   },
+  { size: 15, ox: -10, oy: 12,  delay: 55  },
+  { size: 19, ox: 12,  oy: -8,  delay: 35  },
+  { size: 12, ox: -6,  oy: 18,  delay: 95  },
+  { size: 20, ox: 6,   oy: -14, delay: 18  },
+  { size: 10, ox: -14, oy: 6,   delay: 130 },
+  { size: 14, ox: 9,   oy: 14,  delay: 75  },
+  { size: 16, ox: -4,  oy: -10, delay: 110 },
+];
+
+function WaterShotEffect({ mode, onDone }) {
+  useEffect(() => {
+    const t = setTimeout(onDone, 1500);
+    return () => clearTimeout(t);
+  }, [onDone]);
+
+  // Solo: player bottom-left → enemy top-right
+  // VS:   player left      → opponent right (roughly same height)
+  const isSolo = mode !== "vs";
+  const flyX   = isSolo ? "48vw" : "62vw";
+  const flyY   = isSolo ? "-36vh" : "-6vh";
+  const origin = isSolo ? { left: "22%", top: "65%" } : { left: "14%", top: "55%" };
+  const impact = isSolo ? { left: "72%", top: "28%" } : { left: "83%", top: "65%" };
+
+  return (
+    <>
+      {/* Orbs — start at player character, fly toward enemy */}
+      <div style={{
+        position: "absolute", ...origin,
+        zIndex: 15, pointerEvents: "none",
+        "--wfx": flyX, "--wfy": flyY,
+      }}>
+        {WATER_ORBS.map((orb, i) => (
+          <div key={i} style={{
+            position: "absolute",
+            left: `${orb.ox}px`, top: `${orb.oy}px`,
+            width: `${orb.size}px`, height: `${orb.size}px`,
+            borderRadius: "50%",
+            background: "radial-gradient(circle at 30% 30%, #DDEEFF, #1188DD 50%, #005599)",
+            boxShadow: `0 0 ${Math.round(orb.size * 0.6)}px #55CCFF88, inset 0 0 ${Math.round(orb.size * 0.3)}px rgba(255,255,255,0.7)`,
+            animation: `waterOrbFly 0.88s cubic-bezier(0.25, 0.1, 0.3, 1) ${orb.delay}ms both`,
+          }} />
+        ))}
+      </div>
+
+      {/* Impact ripple at enemy position — timed to first orb arrival */}
+      <div style={{
+        position: "absolute", ...impact,
+        width: 28, height: 28, marginLeft: -14, marginTop: -14,
+        borderRadius: "50%",
+        border: "3px solid #55CCFF", boxShadow: "0 0 14px #55CCFF",
+        pointerEvents: "none", zIndex: 15,
+        animation: "waterImpact 0.55s ease-out 0.90s both",
+      }} />
+    </>
+  );
+}
+
+// ── Pyreball burning-fireball animation ──────────────────────────────────────
+// Trailing flames stream BEHIND the travel direction (opposite of fly vector).
+const FIRE_TRAIL = [
+  { d: 12, size: 46, opa: 0.85, blur: 1 },
+  { d: 24, size: 36, opa: 0.70, blur: 2 },
+  { d: 35, size: 27, opa: 0.55, blur: 3 },
+  { d: 45, size: 19, opa: 0.40, blur: 4 },
+  { d: 53, size: 12, opa: 0.28, blur: 5 },
+];
+
+function FireballEffect({ mode, onDone }) {
+  useEffect(() => {
+    const t = setTimeout(onDone, 1700);
+    return () => clearTimeout(t);
+  }, [onDone]);
+
+  const isSolo = mode !== "vs";
+  const flyX   = isSolo ? "44vw" : "62vw";
+  const flyY   = isSolo ? "-42vh" : "-6vh";
+  const origin = isSolo ? { left: "20%", top: "68%" } : { left: "14%", top: "55%" };
+  const impact = isSolo ? { left: "64%", top: "18%" } : { left: "83%", top: "58%" };
+
+  // Unit vector opposite to travel → tail trails behind the fireball.
+  const fx = parseFloat(flyX), fy = parseFloat(flyY);
+  const fmag = Math.hypot(fx, fy) || 1;
+  const back = { x: -fx / fmag, y: -fy / fmag };
+
+  const fire = "radial-gradient(circle at 40% 35%, #FFF6C8, #FFB100 35%, #FF4400 62%, rgba(170,21,0,0))";
+
+  return (
+    <>
+      <div style={{
+        position: "absolute", ...origin,
+        zIndex: 15, pointerEvents: "none",
+        "--wfx": flyX, "--wfy": flyY,
+      }}>
+        {/* whole flaming mass travels together */}
+        <div style={{ position: "relative", animation: "fireballFly 0.9s cubic-bezier(0.2,0,0.5,1) both" }}>
+          {/* trailing flames behind the head */}
+          {FIRE_TRAIL.map((t, i) => (
+            <div key={i} style={{
+              position: "absolute",
+              left: back.x * t.d, top: back.y * t.d,
+              width: t.size, height: t.size,
+              marginLeft: -t.size / 2, marginTop: -t.size / 2,
+              borderRadius: "50%",
+              background: `radial-gradient(circle at 40% 35%, rgba(255,240,170,${t.opa}), rgba(255,120,0,${t.opa * 0.8}) 45%, rgba(200,30,0,0))`,
+              filter: `blur(${t.blur}px)`,
+              animation: `fireFlicker ${0.22 + i * 0.04}s ease-in-out ${i * 35}ms infinite`,
+            }} />
+          ))}
+          {/* soft outer aura */}
+          <div style={{
+            position: "absolute", width: 84, height: 84, marginLeft: -42, marginTop: -42,
+            borderRadius: "50%",
+            background: "radial-gradient(circle, rgba(255,140,0,0.5), rgba(255,60,0,0.14) 60%, transparent 76%)",
+            filter: "blur(4px)",
+            animation: "fireFlicker 0.32s ease-in-out infinite",
+          }} />
+          {/* main flame body */}
+          <div style={{
+            position: "absolute", width: 56, height: 56, marginLeft: -28, marginTop: -28,
+            borderRadius: "50%",
+            background: fire,
+            boxShadow: "0 0 40px #FF6600, 0 0 16px #FFAA00",
+            animation: "fireFlicker 0.26s ease-in-out 50ms infinite",
+          }} />
+          {/* second flame body (offset, faster) for layered licking */}
+          <div style={{
+            position: "absolute", width: 40, height: 40, marginLeft: -20, marginTop: -24,
+            borderRadius: "50%",
+            background: "radial-gradient(circle at 45% 40%, #FFE680, #FF7300 50%, rgba(255,60,0,0))",
+            animation: "fireFlicker 0.19s ease-in-out 90ms infinite",
+          }} />
+          {/* white-hot core */}
+          <div style={{
+            position: "absolute", width: 22, height: 22, marginLeft: -11, marginTop: -11,
+            borderRadius: "50%",
+            background: "radial-gradient(circle, #FFFFFF, #FFE89A 60%, rgba(255,200,80,0))",
+            animation: "fireFlicker 0.16s ease-in-out 30ms infinite",
+          }} />
+        </div>
+      </div>
+
+      {/* fiery impact burst at Brimhat */}
+      <div style={{
+        position: "absolute", ...impact,
+        width: 60, height: 60, marginLeft: -30, marginTop: -30,
+        borderRadius: "50%",
+        background: "radial-gradient(circle, #FFEE88 0%, #FF7700 35%, rgba(255,51,0,0.3) 65%, transparent 100%)",
+        boxShadow: "0 0 50px #FF6600, 0 0 18px #FFCC00",
+        pointerEvents: "none", zIndex: 15,
+        animation: "fireImpactBig 0.8s ease-out 0.92s both",
+      }} />
+    </>
+  );
+}
+
+// ── Billowing Collection cloud-shield animation ───────────────────────────────
+const CLOUD_PUFFS = [
+  { size: 52, ox: -58, oy: -28, delay: 0   },
+  { size: 42, ox:  22, oy: -62, delay: 80  },
+  { size: 48, ox:  64, oy:  -8, delay: 160 },
+  { size: 36, ox:  42, oy:  42, delay: 50  },
+  { size: 50, ox: -32, oy:  52, delay: 200 },
+  { size: 40, ox: -68, oy:  18, delay: 120 },
+  { size: 32, ox:  10, oy: -32, delay: 260 },
+  { size: 44, ox: -22, oy: -52, delay: 310 },
+];
+
+function CloudShieldEffect({ mode, onDone }) {
+  useEffect(() => {
+    const t = setTimeout(onDone, 2000);
+    return () => clearTimeout(t);
+  }, [onDone]);
+
+  const isSolo = mode !== "vs";
+  const anchor = isSolo ? { left: "30%", top: "54%" } : { left: "18%", top: "50%" };
+
+  return (
+    <div style={{ position: "absolute", ...anchor, zIndex: 15, pointerEvents: "none" }}>
+      {CLOUD_PUFFS.map((puff, i) => (
+        <div key={i} style={{
+          position: "absolute",
+          left: `${puff.ox}px`, top: `${puff.oy}px`,
+          width:  `${puff.size}px`,
+          height: `${Math.round(puff.size * 0.65)}px`,
+          borderRadius: "50%",
+          background: "radial-gradient(ellipse at 40% 35%, rgba(255,255,255,0.95), rgba(200,225,255,0.75) 50%, rgba(150,200,255,0.25))",
+          boxShadow: `0 0 ${Math.round(puff.size * 0.4)}px rgba(180,220,255,0.55), inset 0 0 ${Math.round(puff.size * 0.3)}px rgba(255,255,255,0.35)`,
+          animation: `cloudPuff 1.5s ease-out ${puff.delay}ms both`,
+        }} />
+      ))}
+    </div>
+  );
+}
+
 // ── Main Battle screen ────────────────────────────────────────────────────────
 export default function Battle({
   selectedChar, loadout,
@@ -181,6 +378,9 @@ export default function Battle({
   const [playerShaking,   setPlayerShaking]   = useState(false);
   const [enemyShaking,    setEnemyShaking]    = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [waterEffect,     setWaterEffect]     = useState(false);
+  const [fireEffect,      setFireEffect]      = useState(false);
+  const [cloudEffect,     setCloudEffect]     = useState(false);
 
   // VS mode state
   const [vsState,         setVsState]         = useState(null);
@@ -287,18 +487,18 @@ export default function Battle({
       }
       const mult = acc / 100;
       if (spell.type === "attack") {
-        const pMod = caster.id === "agott" ? 1.15 : 1;
+        const pMod = caster.dmgMult ?? 1;
         const dmg  = Math.round(spell.baseDmg * mult * pMod);
         const abs  = Math.min(targetSh, dmg);
         return { targetHP: Math.max(0, targetHP - (dmg - abs)), targetSh: Math.max(0, targetSh - abs), selfHP, selfSh, selfFloat: null, targetFloat: { amt: dmg, type: "dmg" }, log: `${spell.icon} ${caster.name} hits for ${dmg}!${abs ? ` [${abs} absorbed]` : ""}` };
       }
       if (spell.type === "defense") {
-        const shMod  = caster.id === "richeh" ? 1.2 : 1;
+        const shMod  = caster.shieldMult ?? 1;
         const shield = Math.round(spell.baseShield * mult * shMod);
         return { targetHP, targetSh, selfHP, selfSh: selfSh + shield, selfFloat: { amt: shield, type: "shield" }, targetFloat: null, log: `${spell.icon} ${caster.name} gains ${shield} shield!` };
       }
       if (spell.type === "heal") {
-        const healMod = caster.id === "tetia" ? 1.3 : 1;
+        const healMod = caster.healMult ?? 1;
         const heal    = Math.round(spell.baseHeal * mult * healMod);
         return { targetHP, targetSh, selfHP: Math.min(selfMaxHP, selfHP + heal), selfSh, selfFloat: { amt: heal, type: "heal" }, targetFloat: null, log: `${spell.icon} ${caster.name} heals ${heal} HP!` };
       }
@@ -340,6 +540,9 @@ export default function Battle({
 
   // ── VS: submit my cast ────────────────────────────────────────────────────
   const handleSpellCastVs = async (accuracy) => {
+    if (selectedSpell === "watershot_seal"      && accuracy >= 30) setWaterEffect(true);
+    if (selectedSpell === "pyreball_seal"       && accuracy >= 30) setFireEffect(true);
+    if (selectedSpell === "billowing_collection" && accuracy >= 30) setCloudEffect(true);
     await update(ref(db, `rooms/${roomCode}/battle`), {
       [`${playerRole}Cast`]: { spellId: selectedSpell, accuracy },
     });
@@ -351,7 +554,7 @@ export default function Battle({
   // ── Solo: spell cast ──────────────────────────────────────────────────────
   const handleSpellCast = (accuracy) => {
     const spell    = SPELLS.find((s) => s.id === selectedSpell);
-    const powerMod = ch.id === "agott" ? 1.15 : 1;
+    const powerMod = ch.dmgMult ?? 1;
 
     if (accuracy < 30) {
       const backfire = Math.round(spell.baseDmg * 0.3);
@@ -365,14 +568,17 @@ export default function Battle({
         setEnemyHP((prev) => Math.max(0, prev - dmg));
         triggerDmg("enemy", dmg, "dmg");
         setBattleLog((prev) => [...prev, `${spell.icon} ${spell.name} hits for ${dmg}! (${accuracy}% accuracy)`]);
+        if (spell.id === "watershot_seal") setWaterEffect(true);
+        if (spell.id === "pyreball_seal")  setFireEffect(true);
       } else if (spell.type === "defense") {
-        const shieldMod = ch.id === "richeh" ? 1.2 : 1;
+        if (spell.id === "billowing_collection") setCloudEffect(true);
+        const shieldMod = ch.shieldMult ?? 1;
         const shield = Math.round(spell.baseShield * mult * shieldMod);
         setPlayerShield((prev) => prev + shield);
         triggerDmg("player", shield, "shield");
         setBattleLog((prev) => [...prev, `${spell.icon} ${spell.name} grants ${shield} shield! (${accuracy}%)`]);
       } else if (spell.type === "heal") {
-        const healMod = ch.id === "tetia" ? 1.3 : 1;
+        const healMod = ch.healMult ?? 1;
         const heal = Math.round(spell.baseHeal * mult * healMod);
         setPlayerHP((prev) => Math.min(ch.hp, prev + heal));
         triggerDmg("player", heal, "heal");
@@ -473,7 +679,7 @@ export default function Battle({
         <SigilCanvas
           spell={castingSpell}
           onComplete={mode === "vs" ? handleSpellCastVs : handleSpellCast}
-          characterBonus={ch.id === "coco"}
+          accBonus={ch.accBonus ?? 0}
         />
       </div>
     </div>
@@ -614,6 +820,9 @@ export default function Battle({
           </div>
         </div>
 
+        {waterEffect  && <WaterShotEffect   mode="vs" onDone={() => setWaterEffect(false)}  />}
+        {fireEffect   && <FireballEffect    mode="vs" onDone={() => setFireEffect(false)}   />}
+        {cloudEffect  && <CloudShieldEffect mode="vs" onDone={() => setCloudEffect(false)}  />}
         <SigilOverlay />
       </div>
     );
@@ -726,6 +935,9 @@ export default function Battle({
         </div>
       </div>
 
+      {waterEffect  && <WaterShotEffect   mode="solo" onDone={() => setWaterEffect(false)}  />}
+      {fireEffect   && <FireballEffect    mode="solo" onDone={() => setFireEffect(false)}   />}
+      {cloudEffect  && <CloudShieldEffect mode="solo" onDone={() => setCloudEffect(false)}  />}
       <SigilOverlay />
     </div>
   );

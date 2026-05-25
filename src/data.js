@@ -8,6 +8,7 @@ export const CHARACTERS = [
     color: "#C97B4B",
     desc: "A girl born without magic who discovered the forbidden truth — that anyone can become a witch.",
     passive: "Drawing Prodigy: +10% accuracy bonus",
+    accBonus: 10,
   },
   {
     id: "agott",
@@ -18,6 +19,7 @@ export const CHARACTERS = [
     color: "#7B68AE",
     desc: "A talented apprentice from a prestigious witch family, driven by pride and hidden insecurity.",
     passive: "Raw Power: +15% spell damage",
+    dmgMult: 1.15,
   },
   {
     id: "tetia",
@@ -27,7 +29,8 @@ export const CHARACTERS = [
     power: 8,
     color: "#E8A0BF",
     desc: "A kind-hearted apprentice whose gentle nature belies surprising resilience.",
-    passive: "Mending Touch: +30% healing power",
+    passive: "Arcane Shield: +20% defense spells",
+    shieldMult: 1.2,
   },
   {
     id: "richeh",
@@ -37,7 +40,8 @@ export const CHARACTERS = [
     power: 11,
     color: "#5B8C7A",
     desc: "A quiet, observant apprentice who speaks little but sees much.",
-    passive: "Arcane Shield: +20% defense spells",
+    passive: "Mending Touch: +30% healing power",
+    healMult: 1.3,
   },
 ];
 
@@ -46,11 +50,21 @@ export const SPELLS = [
     id: "watershot_seal",
     name: "Watershot Seal",
     type: "attack",
-    baseDmg: 30,
+    baseDmg: 38,
     icon: "💧",
     desc: "A water sigil that launches a high-pressure jet at the target",
-    difficulty: 2,
+    difficulty: 3,
     sigilType: "watershot_seal",
+  },
+  {
+    id: "pyreball_seal",
+    name: "Pyreball Seal",
+    type: "attack",
+    baseDmg: 26,
+    icon: "🔥",
+    desc: "A fire sigil that hurls a condensed sphere of flame at the target",
+    difficulty: 2,
+    sigilType: "pyreball_seal",
   },
   {
     id: "healing_craft",
@@ -61,6 +75,16 @@ export const SPELLS = [
     desc: "A forbidden craft that mends the caster's wounds through light and earth",
     difficulty: 2,
     sigilType: "healing_craft",
+  },
+  {
+    id: "billowing_collection",
+    name: "Billowing Collection",
+    type: "defense",
+    baseShield: 35,
+    icon: "☁️",
+    desc: "A wind sigil that conjures billowing clouds to shield the caster from harm",
+    difficulty: 3,
+    sigilType: "billowing_collection",
   },
 ];
 

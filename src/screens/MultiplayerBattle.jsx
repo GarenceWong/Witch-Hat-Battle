@@ -225,15 +225,15 @@ export default function MultiplayerBattle({ selectedChar, loadout, roomCode, pla
       }
       const m = acc / 100;
       if (spell.type === "attack") {
-        const dmg = Math.round(spell.baseDmg * m * (caster.id === "agott" ? 1.15 : 1));
+        const dmg = Math.round(spell.baseDmg * m * (caster.dmgMult ?? 1));
         const abs = Math.min(tSh, dmg);
         return { tHP: Math.max(0, tHP - (dmg - abs)), tSh: Math.max(0, tSh - abs), sHP, sSh, sF: null, tF: { amt: dmg, type: "dmg" }, log: `${spell.icon} ${caster.name} hits for ${dmg}!${abs ? ` [${abs} absorbed]` : ""}` };
       }
       if (spell.type === "defense") {
-        const sh = Math.round(spell.baseShield * m * (caster.id === "richeh" ? 1.2 : 1));
+        const sh = Math.round(spell.baseShield * m * (caster.shieldMult ?? 1));
         return { tHP, tSh, sHP, sSh: sSh + sh, sF: { amt: sh, type: "shield" }, tF: null, log: `${spell.icon} ${caster.name} gains ${sh} shield!` };
       }
-      const heal = Math.round(spell.baseHeal * m * (caster.id === "tetia" ? 1.3 : 1));
+      const heal = Math.round(spell.baseHeal * m * (caster.healMult ?? 1));
       return { tHP, tSh, sHP: Math.min(sMaxHP, sHP + heal), sSh, sF: { amt: heal, type: "heal" }, tF: null, log: `${spell.icon} ${caster.name} heals ${heal} HP!` };
     };
 
@@ -459,7 +459,7 @@ export default function MultiplayerBattle({ selectedChar, loadout, roomCode, pla
             <div style={{ fontFamily: "Cinzel", fontSize: "13px", color: ch?.color, letterSpacing: "3px", marginBottom: "4px" }}>
               CASTING — {castingSpell.name.toUpperCase()}
             </div>
-            <SigilCanvas spell={castingSpell} onComplete={handleCast} characterBonus={ch?.id === "coco"} />
+            <SigilCanvas spell={castingSpell} onComplete={handleCast} accBonus={ch?.accBonus ?? 0} />
           </div>
         </div>
       )}

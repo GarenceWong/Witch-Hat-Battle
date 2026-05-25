@@ -1,14 +1,18 @@
 import { initializeApp } from "firebase/app";
 import { getDatabase } from "firebase/database";
 
+// Config is read from Vite env vars (VITE_* are exposed to the client at build
+// time). Values live in .env locally and in GitHub Actions repo secrets for CI.
+// NOTE: a Firebase *web* API key is not a secret — it ships in the client bundle
+// by design. Real protection = API key restrictions + Realtime Database rules.
 const firebaseConfig = {
-  apiKey: "AIzaSyB77Zkhi8JA_ZmwLt87-sOI-pgeKmWOQuU",
-  authDomain: "witch-hat-battle-dc45e.firebaseapp.com",
-  databaseURL: "https://witch-hat-battle-dc45e-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "witch-hat-battle-dc45e",
-  storageBucket: "witch-hat-battle-dc45e.firebasestorage.app",
-  messagingSenderId: "225884310489",
-  appId: "1:225884310489:web:0510e02db7035ee43627c8",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
 const app = initializeApp(firebaseConfig);
