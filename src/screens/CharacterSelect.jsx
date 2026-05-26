@@ -275,7 +275,7 @@ export default function CharacterSelect({ selectedChar, setSelectedChar, onNav, 
           </div>
         </div>
 
-        {/* ── Right info panel ── */}
+        {/* ── Right info panel ──*/}
         <div style={{
           width: 360,
           flexShrink: 0,
