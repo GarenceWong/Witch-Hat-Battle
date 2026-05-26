@@ -9,11 +9,12 @@ A fan-made, browser-based spell-drawing battle game inspired by the anime **Witc
 
 ## 🌟 Features
 
-### Solo Mode — Duel the Brimhat Sorcerer
-- Turn-based battle against an AI opponent
+### Solo Mode — Duel Brimmed Cap Iguin
+- Turn-based battle against **Brimmed Cap Iguin**, an AI opponent
 - Cast spells by tracing their sigil on a canvas — accuracy determines power
 - High accuracy → full effect · Low accuracy (< 70%) → backfire damage to yourself
 - Animated cast effects for every spell: fireball, watershot, and cloud shield
+- **Battle music** that sets the atmosphere, with a mute toggle in the battle UI
 
 ### Versus Mode — Cross Sigils with a Friend
 - Real-time **online multiplayer** via Firebase Realtime Database
@@ -90,7 +91,11 @@ Score **< 70%** → **Backfire** — 30% of the spell's base stat is dealt back 
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Play Now
+
+**[witchhatbattle.vercel.app](https://witchhatbattle.vercel.app/)**
+
+Or run it locally:
 
 ```bash
 # Install dependencies
@@ -99,8 +104,6 @@ npm install
 # Start dev server
 npm run dev
 ```
-
-Then open [http://localhost:5173](http://localhost:5173) in your browser.
 
 ---
 
