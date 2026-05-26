@@ -57,10 +57,10 @@ export default function Result({ result, selectedChar, onRematch, onNewWitch, on
           }}
         >
           {result === "win"
-            ? `${ch.name}'s glyphs proved stronger. The Brimhat Sorcerer retreats into shadow.`
+            ? `${ch.name}'s glyphs proved stronger. The Brimmed Cap Iguin retreats into shadow.`
             : result === "draw"
             ? `Both sigils shattered at once. ${ch.name} and their opponent fall together — a rare and honourable outcome.`
-            : `The Brimhat Sorcerer's magic overwhelmed ${ch.name}. But an apprentice never stops learning.`}
+            : `The Brimmed Cap Iguin's magic overwhelmed ${ch.name}. But an apprentice never stops learning.`}
         </p>
         <div
           style={{

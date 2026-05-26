@@ -8,6 +8,7 @@ import agottImg  from "../assets/agott.png";
 import tetiaImg  from "../assets/tetia.png";
 import richehImg from "../assets/richeh.png";
 import BattleBackground from "../components/BattleBackground.jsx";
+import battleMusic from "../assets/Innocence of a Curious Mind.mp3";
 
 const CHAR_IMAGES = { coco: cocoImg, agott: agottImg, tetia: tetiaImg, richeh: richehImg };
 
@@ -246,6 +247,22 @@ export default function MultiplayerBattle({ selectedChar, loadout, roomCode, pla
   const [waterEffect, setWaterEffect] = useState(false);
   const [fireEffect,  setFireEffect]  = useState(false);
   const [cloudEffect, setCloudEffect] = useState(false);
+  const [muted,       setMuted]       = useState(false);
+
+  const audioRef = useRef(null);
+
+  useEffect(() => {
+    const audio = new Audio(battleMusic);
+    audio.loop = true;
+    audio.volume = 0.28;
+    audioRef.current = audio;
+    const t = setTimeout(() => audio.play().catch(() => {}), 1000);
+    return () => { clearTimeout(t); audio.pause(); audio.currentTime = 0; };
+  }, []);
+
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.muted = muted;
+  }, [muted]);
 
   const oppChar   = CHARACTERS.find(c => c.id === oppCharId);
   const oppName   = oppChar?.name  ?? "Opponent";
@@ -452,7 +469,10 @@ export default function MultiplayerBattle({ selectedChar, loadout, roomCode, pla
             }
           </div>
         </div>
-        <div style={{ width: 52 }} />
+        <button onClick={() => setMuted(m => !m)} style={{ background: "none", border: "none", cursor: "pointer", color: "#6B5A3E", fontSize: "16px", padding: "0", lineHeight: 1, transition: "color 0.2s" }}
+          onMouseEnter={e => e.currentTarget.style.color = "#C9A96E"}
+          onMouseLeave={e => e.currentTarget.style.color = "#6B5A3E"}
+        >{muted ? "🔇" : "🔊"}</button>
       </div>
 
       {/* ── Exit modal ── */}

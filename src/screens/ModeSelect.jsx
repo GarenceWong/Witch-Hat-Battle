@@ -26,7 +26,7 @@ export default function ModeSelect({ onNav }) {
           color: "#8B7355", fontStyle: "italic", textAlign: "center",
           margin: 0,
         }}>
-          Will you duel the Brimhat Sorcerer, or cross sigils against a fellow apprentice?
+          Will you duel Brimmed Cap Iguin, or cross sigils against a fellow apprentice?
         </p>
 
         <div style={{
@@ -79,7 +79,7 @@ export default function ModeSelect({ onNav }) {
               fontFamily: "Cormorant Garamond", fontSize: "16px",
               color: "#8B7355", fontStyle: "italic", lineHeight: 1.7, margin: 0,
             }}>
-              Pick your witch and duel the Brimhat Sorcerer.
+              Pick your witch and duel Brimmed Cap Iguin.
             </p>
           </div>
 

@@ -8,6 +8,7 @@ import agottImg  from "../assets/agott.png";
 import tetiaImg  from "../assets/tetia.png";
 import richehImg from "../assets/richeh.png";
 import BattleBackground from "../components/BattleBackground.jsx";
+import battleMusic from "../assets/Chase Through Arcane Winds.mp3";
 
 const CHAR_IMAGES = { coco: cocoImg, agott: agottImg, tetia: tetiaImg, richeh: richehImg };
 const ENEMY_IMG   = "https://tongari-anime.com/main/assets/img/character/c_stand07.png";
@@ -144,7 +145,7 @@ function ExitModal({ mode, onStay, onFlee }) {
         <div style={{ fontFamily: "Cormorant Garamond", fontSize: "17px", color: "#8B7355", fontStyle: "italic", marginBottom: "32px", lineHeight: 1.6 }}>
           {mode === "vs"
             ? "Your progress will be lost. Your opponent wins by default."
-            : "Your progress will be lost. The Brimhat Sorcerer wins by default."}
+            : "Your progress will be lost. The Brimmed Cap Iguin wins by default."}
         </div>
         <div style={{ display: "flex", gap: "16px", justifyContent: "center" }}>
           <button onClick={onStay} style={{ background: "transparent", border: "1px solid rgba(201,169,110,0.3)", borderRadius: "8px", padding: "12px 28px", fontFamily: "Cinzel", fontSize: "13px", color: "#8B7355", cursor: "pointer", letterSpacing: "1px", transition: "all 0.2s" }}
@@ -583,6 +584,23 @@ export default function Battle({
   const [waterEffect,     setWaterEffect]     = useState(false);
   const [fireEffect,      setFireEffect]      = useState(false);
   const [cloudEffect,     setCloudEffect]     = useState(false);
+  const [muted,           setMuted]           = useState(false);
+
+  const audioRef = useRef(null);
+
+  useEffect(() => {
+    if (mode === "vs") return;
+    const audio = new Audio(battleMusic);
+    audio.loop = true;
+    audio.volume = 0.28;
+    audioRef.current = audio;
+    const t = setTimeout(() => audio.play().catch(() => {}), 1000);
+    return () => { clearTimeout(t); audio.pause(); audio.currentTime = 0; };
+  }, [mode]);
+
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.muted = muted;
+  }, [muted]);
 
   // VS mode state
   const [vsState,         setVsState]         = useState(null);
@@ -817,11 +835,11 @@ export default function Battle({
               return newHP;
             });
             triggerDmg("player", dmg, "dmg");
-            setBattleLog((prev) => [...prev, `🔮 Brimhat casts ${eSpell.name} for ${dmg}!` + (absorbed > 0 ? ` [${absorbed} absorbed]` : "")]);
+            setBattleLog((prev) => [...prev, `🔮 Iguin casts ${eSpell.name} for ${dmg}!` + (absorbed > 0 ? ` [${absorbed} absorbed]` : "")]);
             return Math.max(0, prevShield - absorbed);
           });
         } else {
-          setBattleLog((prev) => [...prev, `🔮 Brimhat raises a ward.`]);
+          setBattleLog((prev) => [...prev, `🔮 Iguin raises a ward.`]);
         }
         setTurnCount((tc) => tc + 1);
         setEnemyTurnActive(false);
@@ -837,7 +855,7 @@ export default function Battle({
   const oppShKey = playerRole === "host" ? "guestShield": "hostShield";
 
   const oppChar    = mode === "vs" ? CHARACTERS.find(c => c.id === oppCharId) : null;
-  const oppName    = mode === "vs" ? (oppChar?.name   ?? "Opponent")        : "Brimhat Sorcerer";
+  const oppName    = mode === "vs" ? (oppChar?.name   ?? "Opponent")        : "Brimmed Cap Iguin";
   const oppColor   = mode === "vs" ? (oppChar?.color  ?? "#8B1A1A")         : ENEMY_DATA.color;
   const oppMaxHP   = mode === "vs" ? (oppChar?.hp     ?? 100)               : ENEMY_DATA.hp;
   const oppImgSrc  = mode === "vs" ? (oppCharId ? CHAR_IMAGES[oppCharId] : null) : ENEMY_IMG;
@@ -1057,7 +1075,12 @@ export default function Battle({
               : "YOUR MOVE"}
           </div>
         </div>
-        <div style={{ width: 52 }} />
+        {mode !== "vs" && (
+          <button onClick={() => setMuted(m => !m)} style={{ background: "none", border: "none", cursor: "pointer", color: "#6B5A3E", fontSize: "16px", padding: "0", lineHeight: 1, transition: "color 0.2s", width: 52, textAlign: "right" }}
+            onMouseEnter={e => e.currentTarget.style.color = "#C9A96E"}
+            onMouseLeave={e => e.currentTarget.style.color = "#6B5A3E"}
+          >{muted ? "🔇" : "🔊"}</button>
+        )}
       </div>
 
       {showExitConfirm && <ExitModal mode={mode} onStay={() => setShowExitConfirm(false)} onFlee={() => onNav("landing")} />}
@@ -1081,7 +1104,7 @@ export default function Battle({
           {/* Enemy side */}
           <div style={{ flex: 1, display: "flex", flexDirection: "row", alignItems: "flex-start", justifyContent: "flex-end", padding: "20px 300px 0 0", gap: "16px", minHeight: 0, overflow: "hidden" }}>
             <div style={{ alignSelf: "flex-start", display: "flex", alignItems: "flex-end" }}>
-              <img src={ENEMY_IMG} alt="Brimhat Sorcerer"
+              <img src={ENEMY_IMG} alt="Brimmed Cap Iguin"
                 onError={e => { e.target.style.display = "none"; }}
                 style={{
                   maxHeight: "300px", width: "auto", transform: "scaleX(-1)",
@@ -1092,7 +1115,7 @@ export default function Battle({
               />
             </div>
             <HPCard
-              name="Brimhat Sorcerer"
+              name="Brimmed Cap Iguin"
               hp={enemyHP} maxHP={ENEMY_DATA.hp} shield={0}
               color={ENEMY_DATA.color} dmg={enemyDmg}
               isCasting={isEnemyCasting} isShaking={enemyShaking}
@@ -1130,7 +1153,7 @@ export default function Battle({
             ) : !castingPhase ? (
               <div style={{ background: "rgba(6,3,14,0.88)", border: "1px solid rgba(139,26,26,0.25)", borderRadius: "14px", padding: "18px 16px", display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
                 <div style={{ fontSize: "30px", animation: "enemyCast 1.6s infinite" }}>🔮</div>
-                <div style={{ fontFamily: "Cormorant Garamond", fontSize: "15px", color: "#A89070", fontStyle: "italic" }}>The Brimhat Sorcerer draws their glyph...</div>
+                <div style={{ fontFamily: "Cormorant Garamond", fontSize: "15px", color: "#A89070", fontStyle: "italic" }}>The Brimmed Cap Iguin draws their glyph...</div>
               </div>
             ) : null}
           </div>

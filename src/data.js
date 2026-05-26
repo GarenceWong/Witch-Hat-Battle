@@ -89,7 +89,7 @@ export const SPELLS = [
 ];
 
 export const ENEMY_DATA = {
-  name: "Brimhat Sorcerer",
+  name: "Brimmed Cap Iguin",
   hp: 100,
   power: 10,
   color: "#8B1A1A",

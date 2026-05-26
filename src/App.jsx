@@ -46,7 +46,7 @@ export default function App() {
     setTurn("player");
     setSelectedSpell(null);
     setCastingPhase(false);
-    setBattleLog(["⚔ The Brimhat Sorcerer challenges you!"]);
+    setBattleLog(["⚔ Brimmed Cap Iguin challenges you!"]);
     setEnemyTurnActive(false);
     setResult(null);
     setTurnCount(1);
