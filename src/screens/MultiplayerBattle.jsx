@@ -80,18 +80,147 @@ function SpellBtn({ spell, onClick }) {
   return (
     <button onClick={onClick} style={{
       background: tc.bg, border: `1px solid ${tc.border}`,
-      borderRadius: "12px", padding: "14px 8px", cursor: "pointer",
-      display: "flex", flexDirection: "column", alignItems: "center", gap: "6px",
+      borderRadius: "12px", padding: "16px 10px 18px", cursor: "pointer",
+      display: "flex", flexDirection: "column", alignItems: "center", gap: "8px",
       transition: "transform 0.15s, box-shadow 0.15s", width: "100%",
     }}
       onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = `0 6px 18px ${tc.border}`; }}
       onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}
     >
-      <span style={{ fontSize: "34px" }}>{spell.icon}</span>
-      <span style={{ fontFamily: "Cinzel", fontSize: "13px", color: "#D4C4A8", letterSpacing: "0.5px" }}>
-        {spell.name.split(" ")[0]}
+      <span style={{ fontSize: "34px", color: spell.type === "heal" ? "#FFFFFF" : undefined }}>{spell.icon}</span>
+      <span style={{ fontFamily: "Cinzel", fontSize: "11px", color: "#D4C4A8", letterSpacing: "0.5px", textAlign: "center", lineHeight: 1.5 }}>
+        {spell.name}
       </span>
     </button>
+  );
+}
+
+// ── Watershot ─────────────────────────────────────────────────────────────────
+const WATER_DROPS = Array.from({ length: 10 }, (_, i) => {
+  const angle = (i / 10) * Math.PI * 2;
+  const dist  = 52 + (i % 3) * 26;
+  const size  = [12, 9, 6][i % 3];
+  return { sx: `${Math.round(Math.cos(angle) * dist)}px`, sy: `${Math.round(Math.sin(angle) * dist)}px`, size, delay: 800 + i * 15 };
+});
+
+function WaterShotEffect({ onDone }) {
+  useEffect(() => { const t = setTimeout(onDone, 1950); return () => clearTimeout(t); }, [onDone]);
+  const flyX = "62vw", flyY = "-6vh";
+  const origin = { left: "14%", top: "55%" };
+  const impact = { left: "83%", top: "65%" };
+  return (
+    <>
+      <div style={{ position: "absolute", ...origin, zIndex: 20, pointerEvents: "none", "--wfx": flyX, "--wfy": flyY }}>
+        {Array.from({ length: 5 }, (_, i) => { const a = (i / 5) * Math.PI * 2; return (
+          <div key={i} style={{ position: "absolute", left: Math.round(Math.cos(a) * 28), top: Math.round(Math.sin(a) * 28), width: 10, height: 10, marginLeft: -5, marginTop: -5, borderRadius: "50%", background: "radial-gradient(circle at 30% 30%, #CCEEFF, #0099DD 55%, #005588)", boxShadow: "0 0 8px #44CCFF88", animation: `waterOrbFly 0.82s cubic-bezier(0.2,0.1,0.35,1) ${i * 28}ms both` }} />
+        ); })}
+        <div style={{ position: "absolute", width: 60, height: 60, marginLeft: -30, marginTop: -30, borderRadius: "50%", background: "radial-gradient(circle at 32% 28%, #EEFFFF, #22AADD 34%, #0066AA 66%, #002244)", boxShadow: "0 0 55px #00AAFF, 0 0 22px #44DDFF, inset 0 0 14px rgba(255,255,255,0.55)", animation: "waterOrbFly 0.78s cubic-bezier(0.2,0.1,0.3,1) both" }} />
+        <div style={{ position: "absolute", width: 16, height: 16, marginLeft: -22, marginTop: -22, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,255,255,0.95), transparent)", animation: "waterOrbFly 0.78s cubic-bezier(0.2,0.1,0.3,1) both" }} />
+      </div>
+      <div style={{ position: "absolute", ...impact, width: 160, height: 160, marginLeft: -80, marginTop: -80, borderRadius: "50%", background: "radial-gradient(circle, #FFFFFF 0%, rgba(100,220,255,0.88) 32%, transparent 64%)", pointerEvents: "none", zIndex: 22, animation: "wsFlash 0.32s ease-out 0.8s both" }} />
+      <div style={{ position: "absolute", ...impact, width: 105, height: 105, marginLeft: -52, marginTop: -52, borderRadius: "50%", background: "radial-gradient(circle, #EEFFFF 0%, #22CCFF 28%, #0077BB 60%, rgba(0,40,90,0) 100%)", boxShadow: "0 0 65px #00AAFF, 0 0 30px #44DDFF", pointerEvents: "none", zIndex: 21, animation: "wsBlast 0.68s ease-out 0.8s both" }} />
+      <div style={{ position: "absolute", ...impact, width: 20, height: 20, marginLeft: -10, marginTop: -10, borderRadius: "50%", border: "4px solid rgba(60,210,255,0.9)", boxShadow: "0 0 12px #00BBFF, inset 0 0 6px rgba(180,240,255,0.35)", pointerEvents: "none", zIndex: 22, animation: "wsRipple 0.52s ease-out 0.82s both" }} />
+      <div style={{ position: "absolute", ...impact, width: 20, height: 20, marginLeft: -10, marginTop: -10, borderRadius: "50%", border: "2px solid rgba(30,175,240,0.65)", pointerEvents: "none", zIndex: 22, animation: "wsRipple 0.58s ease-out 0.97s both" }} />
+      <div style={{ position: "absolute", ...impact, width: 20, height: 20, marginLeft: -10, marginTop: -10, borderRadius: "50%", border: "1px solid rgba(15,145,215,0.45)", pointerEvents: "none", zIndex: 22, animation: "wsRipple 0.64s ease-out 1.12s both" }} />
+      {WATER_DROPS.map((d, i) => (
+        <div key={i} style={{ position: "absolute", ...impact, width: d.size, height: d.size, marginLeft: -d.size / 2, marginTop: -d.size / 2, borderRadius: "50%", background: "radial-gradient(circle at 32% 28%, #EEFFFF, #22AADD 55%, #004477)", boxShadow: `0 0 ${d.size}px #00AAFFAA`, pointerEvents: "none", zIndex: 22, "--sx": d.sx, "--sy": d.sy, animation: `wsSplash 0.68s ease-out ${d.delay}ms both` }} />
+      ))}
+      <div style={{ position: "absolute", ...impact, width: 115, height: 115, marginLeft: -57, marginTop: -57, borderRadius: "50%", background: "radial-gradient(circle, rgba(80,190,255,0.38) 0%, rgba(40,140,220,0.16) 52%, transparent 75%)", filter: "blur(13px)", pointerEvents: "none", zIndex: 19, animation: "crSmoke 1.1s ease-out 0.88s both" }} />
+    </>
+  );
+}
+
+// ── Pyreball ──────────────────────────────────────────────────────────────────
+const FIRE_TRAIL = [
+  { d: 16, size: 58, opa: 0.88, blur: 1 }, { d: 32, size: 46, opa: 0.72, blur: 2 },
+  { d: 47, size: 34, opa: 0.55, blur: 3 }, { d: 60, size: 24, opa: 0.38, blur: 4 },
+  { d: 72, size: 15, opa: 0.22, blur: 5 }, { d: 82, size:  9, opa: 0.12, blur: 6 },
+];
+const FIRE_EMBERS = Array.from({ length: 12 }, (_, i) => {
+  const angle = (i / 12) * Math.PI * 2;
+  const dist  = 55 + (i % 3) * 32;
+  const size  = [13, 9, 6][i % 3];
+  return { ex: `${Math.round(Math.cos(angle) * dist)}px`, ey: `${Math.round(Math.sin(angle) * dist)}px`, size, delay: 750 + i * 16 };
+});
+
+function FireballEffect({ onDone }) {
+  useEffect(() => { const t = setTimeout(onDone, 2000); return () => clearTimeout(t); }, [onDone]);
+  const flyX = "62vw", flyY = "-6vh";
+  const origin = { left: "14%", top: "55%" };
+  const impact = { left: "83%", top: "58%" };
+  const fx = parseFloat(flyX), fy = parseFloat(flyY);
+  const fmag = Math.hypot(fx, fy) || 1;
+  const back = { x: -fx / fmag, y: -fy / fmag };
+  return (
+    <>
+      <div style={{ position: "absolute", ...origin, zIndex: 20, pointerEvents: "none", "--wfx": flyX, "--wfy": flyY }}>
+        <div style={{ position: "relative", animation: "fireballFly 0.76s cubic-bezier(0.15,0,0.35,1) both" }}>
+          {FIRE_TRAIL.map((tr, i) => (
+            <div key={i} style={{ position: "absolute", left: back.x * tr.d, top: back.y * tr.d, width: tr.size, height: tr.size, marginLeft: -tr.size / 2, marginTop: -tr.size / 2, borderRadius: "50%", background: `radial-gradient(circle at 40% 35%, rgba(255,240,170,${tr.opa}), rgba(255,110,0,${tr.opa * 0.8}) 48%, rgba(200,30,0,0))`, filter: `blur(${tr.blur}px)`, animation: `fireFlicker ${0.2 + i * 0.04}s ease-in-out ${i * 30}ms infinite` }} />
+          ))}
+          <div style={{ position: "absolute", width: 110, height: 110, marginLeft: -55, marginTop: -55, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,130,0,0.55), rgba(255,50,0,0.15) 55%, transparent 75%)", filter: "blur(7px)", animation: "fireFlicker 0.3s ease-in-out infinite" }} />
+          <div style={{ position: "absolute", width: 76, height: 76, marginLeft: -38, marginTop: -38, borderRadius: "50%", background: "radial-gradient(circle at 38% 35%, #FFFFFF, #FFE060 16%, #FF8C00 46%, #CC2000 76%)", boxShadow: "0 0 65px #FF5500, 0 0 30px #FFAA00, 0 0 12px #FFFF88", animation: "fireFlicker 0.21s ease-in-out 50ms infinite" }} />
+          <div style={{ position: "absolute", width: 36, height: 36, marginLeft: -18, marginTop: -18, borderRadius: "50%", background: "radial-gradient(circle, #FFFFFF, rgba(255,240,180,0))", animation: "fireFlicker 0.14s ease-in-out 20ms infinite" }} />
+        </div>
+      </div>
+      <div style={{ position: "absolute", ...impact, width: 190, height: 190, marginLeft: -95, marginTop: -95, borderRadius: "50%", background: "radial-gradient(circle, #FFFFFF 0%, rgba(255,230,120,0.9) 32%, transparent 65%)", pointerEvents: "none", zIndex: 22, animation: "crImpactFlash 0.38s ease-out 0.76s both" }} />
+      <div style={{ position: "absolute", ...impact, width: 150, height: 150, marginLeft: -75, marginTop: -75, borderRadius: "50%", background: "radial-gradient(circle, #FFF8A0 0%, #FF9900 26%, #FF3300 56%, rgba(140,20,0,0) 100%)", boxShadow: "0 0 90px #FF5500, 0 0 44px #FF9900", pointerEvents: "none", zIndex: 21, animation: "crBlastBurst 0.72s ease-out 0.76s both" }} />
+      <div style={{ position: "absolute", ...impact, width: 24, height: 24, marginLeft: -12, marginTop: -12, borderRadius: "50%", border: "5px solid rgba(255,175,55,0.95)", boxShadow: "0 0 18px #FF8800, inset 0 0 8px rgba(255,210,110,0.5)", pointerEvents: "none", zIndex: 22, animation: "crBlastRing 0.52s ease-out 0.78s both" }} />
+      <div style={{ position: "absolute", ...impact, width: 24, height: 24, marginLeft: -12, marginTop: -12, borderRadius: "50%", border: "3px solid rgba(255,100,20,0.7)", pointerEvents: "none", zIndex: 22, animation: "crBlastRing 0.58s ease-out 0.93s both" }} />
+      {FIRE_EMBERS.map((e, i) => (
+        <div key={i} style={{ position: "absolute", ...impact, width: e.size, height: e.size, marginLeft: -e.size / 2, marginTop: -e.size / 2, borderRadius: "50%", background: "radial-gradient(circle, #FFEE88, #FF6600 70%)", boxShadow: `0 0 ${e.size * 1.5}px #FF8800`, pointerEvents: "none", zIndex: 22, "--ex": e.ex, "--ey": e.ey, animation: `crEmber 0.72s ease-out ${e.delay}ms both` }} />
+      ))}
+      <div style={{ position: "absolute", ...impact, width: 130, height: 130, marginLeft: -65, marginTop: -65, borderRadius: "50%", background: "radial-gradient(circle, rgba(90,45,10,0.55) 0%, rgba(60,28,5,0.28) 52%, transparent 78%)", filter: "blur(14px)", pointerEvents: "none", zIndex: 19, animation: "crSmoke 1.1s ease-out 0.88s both" }} />
+    </>
+  );
+}
+
+// ── Billowing Collection ───────────────────────────────────────────────────────
+const CLOUD_PUFFS = [
+  { size: 52, ox: -58, oy: -28, delay: 0 }, { size: 42, ox: 22, oy: -62, delay: 80 },
+  { size: 48, ox:  64, oy:  -8, delay: 160 }, { size: 36, ox: 42, oy: 42, delay: 50 },
+  { size: 50, ox: -32, oy:  52, delay: 200 }, { size: 40, ox: -68, oy: 18, delay: 120 },
+  { size: 32, ox:  10, oy: -32, delay: 260 }, { size: 44, ox: -22, oy: -52, delay: 310 },
+];
+
+function CloudShieldEffect({ onDone }) {
+  useEffect(() => { const t = setTimeout(onDone, 2000); return () => clearTimeout(t); }, [onDone]);
+  return (
+    <div style={{ position: "absolute", left: "18%", top: "50%", zIndex: 15, pointerEvents: "none" }}>
+      {CLOUD_PUFFS.map((puff, i) => (
+        <div key={i} style={{ position: "absolute", left: `${puff.ox}px`, top: `${puff.oy}px`, width: `${puff.size}px`, height: `${Math.round(puff.size * 0.65)}px`, borderRadius: "50%", background: "radial-gradient(ellipse at 40% 35%, rgba(255,255,255,0.95), rgba(200,225,255,0.75) 50%, rgba(150,200,255,0.25))", boxShadow: `0 0 ${Math.round(puff.size * 0.4)}px rgba(180,220,255,0.55), inset 0 0 ${Math.round(puff.size * 0.3)}px rgba(255,255,255,0.35)`, animation: `cloudPuff 1.5s ease-out ${puff.delay}ms both` }} />
+      ))}
+    </div>
+  );
+}
+
+// ── Persistent shield aura ────────────────────────────────────────────────────
+const SHIELD_CLOUDS = [
+  { w: 230, h: 72,  ox:   10, oy: -55, delay: 60,  dur: 4.2, rot:  2,  blur: 10, br: "50% 50% 46% 54% / 60% 58% 42% 40%" },
+  { w: 175, h: 60,  ox: -155, oy: -40, delay: 310, dur: 3.8, rot: -8,  blur: 11, br: "42% 58% 52% 48% / 55% 62% 38% 45%" },
+  { w: 165, h: 58,  ox:  158, oy: -45, delay: 520, dur: 4.0, rot:  7,  blur: 11, br: "55% 45% 48% 52% / 65% 54% 46% 35%" },
+  { w: 140, h: 52,  ox: -210, oy: -25, delay: 180, dur: 3.5, rot: -12, blur: 12, br: "48% 52% 44% 56% / 58% 60% 40% 42%" },
+  { w: 132, h: 50,  ox:  205, oy: -30, delay: 640, dur: 3.9, rot:  10, blur: 12, br: "54% 46% 50% 50% / 62% 52% 48% 38%" },
+  { w: 205, h: 82,  ox:  -8,  oy:   8, delay: 0,   dur: 3.8, rot: -4,  blur: 6,  br: "52% 48% 44% 56% / 68% 62% 38% 32%" },
+  { w: 148, h: 68,  ox: -128, oy:  42, delay: 270, dur: 3.3, rot:  9,  blur: 8,  br: "40% 60% 55% 45% / 55% 48% 52% 38%" },
+  { w: 162, h: 62,  ox:  138, oy:  14, delay: 480, dur: 3.6, rot: -11, blur: 7,  br: "58% 42% 38% 62% / 72% 58% 42% 28%" },
+  { w: 125, h: 58,  ox: -142, oy: 108, delay: 140, dur: 3.1, rot:  6,  blur: 9,  br: "45% 55% 60% 40% / 60% 44% 56% 40%" },
+  { w: 118, h: 54,  ox:  136, oy: 102, delay: 600, dur: 3.5, rot: -7,  blur: 8,  br: "62% 38% 48% 52% / 50% 68% 32% 50%" },
+  { w: 188, h: 80,  ox:   20, oy:  84, delay: 520, dur: 3.0, rot:  3,  blur: 5,  br: "48% 52% 42% 58% / 66% 60% 40% 34%" },
+  { w: 140, h: 60,  ox:  -72, oy: 195, delay: 360, dur: 3.9, rot: 13,  blur: 9,  br: "35% 65% 52% 48% / 58% 70% 30% 42%" },
+  { w: 130, h: 56,  ox:  105, oy: 188, delay: 700, dur: 3.4, rot: -9,  blur: 8,  br: "55% 45% 46% 54% / 74% 50% 50% 26%" },
+  { w: 115, h: 50,  ox:   22, oy: 200, delay: 740, dur: 3.2, rot:  5,  blur: 7,  br: "50% 50% 36% 64% / 65% 56% 44% 35%" },
+  { w: 100, h: 46,  ox: -178, oy: 170, delay: 420, dur: 3.7, rot: -14, blur: 10, br: "44% 56% 58% 42% / 52% 62% 38% 48%" },
+  { w:  92, h: 44,  ox:  168, oy: 155, delay: 200, dur: 3.2, rot:  11, blur: 9,  br: "60% 40% 44% 56% / 68% 46% 54% 32%" },
+];
+
+function ShieldAura({ active }) {
+  return (
+    <div style={{ position: "absolute", left: 520, bottom: 160, width: 0, height: 0, pointerEvents: "none", zIndex: 0, opacity: active ? 1 : 0, transition: "opacity 0.75s ease" }}>
+      {SHIELD_CLOUDS.map((c, i) => (
+        <div key={i} style={{ position: "absolute", left: c.ox - c.w / 2, bottom: c.oy - c.h / 2, width: c.w, height: c.h, borderRadius: c.br, transform: `rotate(${c.rot}deg)`, background: "radial-gradient(ellipse at 48% 36%, rgba(255,240,228,1), rgba(255,210,195,0.92) 50%, rgba(255,175,162,0.55) 75%, rgba(255,150,145,0))", boxShadow: "inset 0 -6px 16px rgba(200,85,65,0.14)", filter: `blur(${c.blur}px)`, animation: `shieldFloat ${c.dur}s ease-in-out ${c.delay}ms infinite` }} />
+      ))}
+    </div>
   );
 }
 
@@ -110,8 +239,13 @@ export default function MultiplayerBattle({ selectedChar, loadout, roomCode, pla
   const [battle,          setBattle]          = useState(null);
   const [oppCharId,       setOppCharId]       = useState(null);
 
-  const prevBattle   = useRef(null);
-  const resolvingRef = useRef(false);
+  const prevBattle    = useRef(null);
+  const resolvingRef  = useRef(false);
+  const myLastSpell   = useRef(null);
+
+  const [waterEffect, setWaterEffect] = useState(false);
+  const [fireEffect,  setFireEffect]  = useState(false);
+  const [cloudEffect, setCloudEffect] = useState(false);
 
   const oppChar   = CHARACTERS.find(c => c.id === oppCharId);
   const oppName   = oppChar?.name  ?? "Opponent";
@@ -185,6 +319,12 @@ export default function MultiplayerBattle({ selectedChar, loadout, roomCode, pla
         const oppF = lr ? (playerRole === "host" ? lr.guest : lr.host)  : null;
         if (myF)  triggerFloat("me",  myF.amt,  myF.type);
         if (oppF) triggerFloat("opp", oppF.amt, oppF.type);
+        // Trigger cast animation for the spell I submitted
+        const sp = myLastSpell.current;
+        if (sp === "watershot_seal")       setWaterEffect(true);
+        if (sp === "pyreball_seal")        setFireEffect(true);
+        if (sp === "billowing_collection") setCloudEffect(true);
+        myLastSpell.current = null;
         setMyCastSubmitted(false);
         setCastingPhase(false);
         setSelectedSpell(null);
@@ -216,12 +356,10 @@ export default function MultiplayerBattle({ selectedChar, loadout, roomCode, pla
     let hostFloat = null, guestFloat = null;
 
     const apply = (caster, spell, acc, tHP, tSh, sHP, sSh, sMaxHP) => {
-      if (acc < 30 && spell.type === "attack") {
-        const bf = Math.round(spell.baseDmg * 0.3);
+      if (acc < 70) {
+        const stat = spell.baseDmg ?? spell.baseShield ?? spell.baseHeal ?? 10;
+        const bf   = Math.round(stat * 0.3);
         return { tHP, tSh, sHP: Math.max(0, sHP - bf), sSh, sF: { amt: bf, type: "backfire" }, tF: null, log: `💥 Backfire! ${caster.name} takes ${bf} damage!` };
-      }
-      if (acc < 30) {
-        return { tHP, tSh, sHP, sSh, sF: null, tF: null, log: `${caster.name}'s sigil fades...` };
       }
       const m = acc / 100;
       if (spell.type === "attack") {
@@ -272,6 +410,7 @@ export default function MultiplayerBattle({ selectedChar, loadout, roomCode, pla
 
   // ── Submit cast ───────────────────────────────────────────────────────────
   const handleCast = async (accuracy) => {
+    myLastSpell.current = selectedSpell;
     await update(ref(db, `rooms/${roomCode}/battle`), {
       [`${playerRole}Cast`]: { spellId: selectedSpell, accuracy },
     });
@@ -380,15 +519,17 @@ export default function MultiplayerBattle({ selectedChar, loadout, roomCode, pla
         {/* ── Bottom row: your character (left) + HP + actions (right, absolute) ── */}
         <div style={{ flex: 1, display: "flex", minHeight: 0, position: "relative" }}>
 
+          <ShieldAura active={myShield > 0} />
+
           {/* Your character — bottom left */}
           <div style={{ flex: 1, display: "flex", alignItems: "flex-end", justifyContent: "flex-start", padding: "0 0 0 340px", minHeight: 0 }}>
             <img src={CHAR_IMAGES[selectedChar]} alt={ch?.name}
-              style={{ maxHeight: "120%", width: "auto", filter: `drop-shadow(0 0 32px ${ch?.color ?? "#888"}77)`, animation: myShaking ? "shake 0.45s ease" : "none", pointerEvents: "none" }}
+              style={{ maxHeight: "120%", width: "auto", filter: `drop-shadow(0 0 32px ${ch?.color ?? "#888"}77)`, animation: myShaking ? "shake 0.45s ease" : "none", pointerEvents: "none", position: "relative", zIndex: 2 }}
             />
           </div>
 
           {/* Your HP + action area — absolute, matching solo position */}
-          <div style={{ position: "absolute", bottom: 80, left: "36%", width: 460, display: "flex", flexDirection: "column", gap: "12px" }}>
+          <div style={{ position: "absolute", bottom: 80, left: "36%", width: 460, display: "flex", flexDirection: "column", gap: "12px", zIndex: 3 }}>
 
             <HPCard
               name={ch?.name ?? ""} hp={myHP} maxHP={ch?.hp ?? 100} shield={myShield}
@@ -451,6 +592,10 @@ export default function MultiplayerBattle({ selectedChar, loadout, roomCode, pla
           </div>
         </div>
       </div>
+
+      {waterEffect && <WaterShotEffect onDone={() => setWaterEffect(false)} />}
+      {fireEffect  && <FireballEffect  onDone={() => setFireEffect(false)}  />}
+      {cloudEffect && <CloudShieldEffect onDone={() => setCloudEffect(false)} />}
 
       {/* ── Sigil casting overlay ── */}
       {castingPhase && castingSpell && (

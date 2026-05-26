@@ -125,47 +125,46 @@ export function generateSigil(type) {
       }
       pts.push(null);
 
-      // 2. Triangle pointing UP with extended vertices.
-      //    Each side continues 12px past each corner, creating the small ray lines
-      //    visible at every vertex in the reference image.
-      //    Sampling every ~5px — no dead-zones at THRESH_PREC=6.
-      const tR = 40, extLen = 12;
+      // 2. Triangle + rays — entire centre group rotated 5° clockwise.
+      const tR = 48;
+      const rot = 5 * Math.PI / 180;
+
+      // Triangle vertices — base angles offset by rot
       const triV = [
-        { x: cx + tR * Math.cos(-Math.PI / 2),    y: cy + tR * Math.sin(-Math.PI / 2)    }, // top
-        { x: cx + tR * Math.cos(Math.PI / 6),     y: cy + tR * Math.sin(Math.PI / 6)     }, // bottom-right
-        { x: cx + tR * Math.cos(5 * Math.PI / 6), y: cy + tR * Math.sin(5 * Math.PI / 6) }, // bottom-left
+        { x: cx + tR * Math.cos(-Math.PI / 2  + rot), y: cy + tR * Math.sin(-Math.PI / 2  + rot) },
+        { x: cx + tR * Math.cos( Math.PI / 6  + rot), y: cy + tR * Math.sin( Math.PI / 6  + rot) },
+        { x: cx + tR * Math.cos(5*Math.PI / 6 + rot), y: cy + tR * Math.sin(5*Math.PI / 6 + rot) },
       ];
       for (let e = 0; e < 3; e++) {
         const v0 = triV[e], v1 = triV[(e + 1) % 3];
-        const dx = v1.x - v0.x, dy = v1.y - v0.y;
-        const edgeLen = Math.hypot(dx, dy);
-        const ux = dx / edgeLen, uy = dy / edgeLen;
-        // Start extLen before v0, end extLen after v1
-        const x0 = v0.x - ux * extLen, y0 = v0.y - uy * extLen;
-        const x1 = v1.x + ux * extLen, y1 = v1.y + uy * extLen;
-        const steps = Math.ceil((edgeLen + 2 * extLen) / 5);
-        for (let s = 0; s <= steps; s++) {
-          const t = s / steps;
-          pts.push({ x: x0 + t * (x1 - x0), y: y0 + t * (y1 - y0) });
-        }
+        line(v0.x, v0.y, v1.x, v1.y);
         pts.push(null);
       }
 
-      // 3. Vertical stem — base midpoint (cx, cy+20) down to cy+70
-      const stemY0 = cy + tR * Math.sin(Math.PI / 6);
-      const stemY1 = cy + 70;
-      for (let s = 0; s <= 6; s++) {
-        pts.push({ x: cx, y: stemY0 + s * (stemY1 - stemY0) / 6 });
+      // Outward rays from each side midpoint (at distance tR/2 from centre).
+      // Unrotated base angles: right=-π/6, left=-5π/6, bottom=π/2 — all shifted by rot.
+      const rayLen = 32;
+      for (const base of [-Math.PI / 6, -5 * Math.PI / 6, Math.PI / 2]) {
+        const a  = base + rot;
+        const mx = cx + (tR / 2) * Math.cos(a);
+        const my = cy + (tR / 2) * Math.sin(a);
+        line(mx, my, mx + Math.cos(a) * rayLen, my + Math.sin(a) * rayLen);
+        pts.push(null);
       }
-      pts.push(null);
 
-      // 4. Five inward-pointing ARROW glyphs (shaft + forked arrowhead), 72° apart
-      //    starting ~11 o'clock. Each arrow's head points at the central fire triangle;
-      //    the shaft trails outward toward the ring, with two barbs forking off the tip.
-      const tipR = 66, shaftLen = 20, barbLen = 15;
-      const barbSpread = Math.PI / 5; // 36°
-      for (let k = 0; k < 5; k++) {
-        const a    = (k / 5) * Math.PI * 2 - 2 * Math.PI / 3; // 0 = 11 o'clock
+      // 4. Five inward-pointing ARROW glyphs (short shaft + wide forked barbs), 72°
+      //    apart starting ~11 o'clock. Barbs are wider (45°) and longer than shaft
+      //    so the chevron V dominates, matching the bold arrow marks in the reference.
+      const tipR = 76, shaftLen = 30, barbLen = 22;
+      const barbSpread = Math.PI / 4; // 45°
+      const arrowAngles = [
+        -2 * Math.PI / 3 - Math.PI / 7, // shifted anticlockwise ~26° toward 10 o'clock
+        -Math.PI / 6,                // 1 o'clock
+         Math.PI / 3 - Math.PI / 7,  // bottom-right, shifted up ~26°
+         5 * Math.PI / 6,            // 7:30
+      ];
+      for (let k = 0; k < 4; k++) {
+        const a    = arrowAngles[k];
         const tipX = cx + tipR * Math.cos(a);                 // arrowhead point (inner)
         const tipY = cy + tipR * Math.sin(a);
         const shX  = cx + (tipR + shaftLen) * Math.cos(a);    // shaft tail (outer)
@@ -173,7 +172,12 @@ export function generateSigil(type) {
         // shaft (outer tail → inner tip)
         line(shX, shY, tipX, tipY);
         pts.push(null);
-        // forked arrowhead: barb → tip → barb (barbs open back outward)
+        // crossbar perpendicular to shaft at the outer tail
+        const crossHalf = 12;
+        line(shX - Math.sin(a) * crossHalf, shY + Math.cos(a) * crossHalf,
+             shX + Math.sin(a) * crossHalf, shY - Math.cos(a) * crossHalf);
+        pts.push(null);
+        // forked barbs opening outward from tip — wider spread makes the V prominent
         const b1x = tipX + barbLen * Math.cos(a + barbSpread);
         const b1y = tipY + barbLen * Math.sin(a + barbSpread);
         const b2x = tipX + barbLen * Math.cos(a - barbSpread);
@@ -279,13 +283,9 @@ export function generateSigil(type) {
       }
       pts.push(null);
 
-      // Four filled dots at top / right / bottom / left intersections
+      // Four solid filled dots — rendered as filled arcs by SigilCanvas
       for (const [dcx, dcy] of [[cx, cy - R], [cx + R, cy], [cx, cy + R], [cx - R, cy]]) {
-        for (let i = 0; i <= 14; i++) {
-          const a = (i / 14) * Math.PI * 2;
-          pts.push({ x: dcx + dotR * Math.cos(a), y: dcy + dotR * Math.sin(a) });
-        }
-        pts.push(null);
+        pts.push({ fill: true, x: dcx, y: dcy, r: dotR });
       }
 
       return pts;
@@ -393,7 +393,18 @@ export function generateSigil(type) {
  *                     (penalises drawing only half the sigil)
  */
 export function calcAccuracy(drawn, template) {
-  const tPts = template.filter(p => p !== null);
+  const tPts = template.flatMap(p => {
+    if (p === null) return [];
+    if (p.fill) {
+      // Expand filled-circle marker into a 3px grid covering the disc
+      const grid = [];
+      for (let dx = -p.r; dx <= p.r; dx += 3)
+        for (let dy = -p.r; dy <= p.r; dy += 3)
+          if (dx * dx + dy * dy <= p.r * p.r) grid.push({ x: p.x + dx, y: p.y + dy });
+      return grid;
+    }
+    return [p];
+  });
   if (drawn.length < 8 || tPts.length === 0) return 0;
 
   const THRESH      = 24;  // px — generous window for coverage & uniformity

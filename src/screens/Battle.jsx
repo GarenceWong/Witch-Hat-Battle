@@ -106,16 +106,16 @@ function SpellBtn({ spell, onClick }) {
       onClick={onClick}
       style={{
         background: tc.bg, border: `1px solid ${tc.border}`,
-        borderRadius: "12px", padding: "14px 8px", cursor: "pointer",
-        display: "flex", flexDirection: "column", alignItems: "center", gap: "6px",
+        borderRadius: "12px", padding: "16px 10px 18px", cursor: "pointer",
+        display: "flex", flexDirection: "column", alignItems: "center", gap: "8px",
         transition: "transform 0.15s, box-shadow 0.15s", width: "100%",
       }}
       onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = `0 6px 18px ${tc.border}`; }}
       onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
     >
-      <span style={{ fontSize: "34px" }}>{spell.icon}</span>
-      <span style={{ fontFamily: "Cinzel", fontSize: "13px", color: "#D4C4A8", letterSpacing: "0.5px" }}>
-        {spell.name.split(" ")[0]}
+      <span style={{ fontSize: "34px", color: spell.type === "heal" ? "#FFFFFF" : undefined }}>{spell.icon}</span>
+      <span style={{ fontFamily: "Cinzel", fontSize: "11px", color: "#D4C4A8", letterSpacing: "0.5px", textAlign: "center", lineHeight: 1.5 }}>
+        {spell.name}
       </span>
     </button>
   );
@@ -161,79 +161,179 @@ function ExitModal({ mode, onStay, onFlee }) {
   );
 }
 
-// ── Watershot cast animation ──────────────────────────────────────────────────
-const WATER_ORBS = [
-  { size: 22, ox: 0,   oy: 0,   delay: 0   },
-  { size: 15, ox: -10, oy: 12,  delay: 55  },
-  { size: 19, ox: 12,  oy: -8,  delay: 35  },
-  { size: 12, ox: -6,  oy: 18,  delay: 95  },
-  { size: 20, ox: 6,   oy: -14, delay: 18  },
-  { size: 10, ox: -14, oy: 6,   delay: 130 },
-  { size: 14, ox: 9,   oy: 14,  delay: 75  },
-  { size: 16, ox: -4,  oy: -10, delay: 110 },
-];
+// ── Watershot — CR-style water impact ────────────────────────────────────────
+// 10 crown-splash droplets arc outward from impact (upward bias in their paths)
+const WATER_DROPS = Array.from({ length: 10 }, (_, i) => {
+  const angle = (i / 10) * Math.PI * 2;
+  const dist  = 52 + (i % 3) * 26;
+  const size  = [12, 9, 6][i % 3];
+  return {
+    sx: `${Math.round(Math.cos(angle) * dist)}px`,
+    sy: `${Math.round(Math.sin(angle) * dist)}px`,
+    size,
+    delay: 800 + i * 15,
+  };
+});
 
 function WaterShotEffect({ mode, onDone }) {
   useEffect(() => {
-    const t = setTimeout(onDone, 1500);
+    const t = setTimeout(onDone, 1950);
     return () => clearTimeout(t);
   }, [onDone]);
 
-  // Solo: player bottom-left → enemy top-right
-  // VS:   player left      → opponent right (roughly same height)
   const isSolo = mode !== "vs";
   const flyX   = isSolo ? "48vw" : "62vw";
   const flyY   = isSolo ? "-36vh" : "-6vh";
   const origin = isSolo ? { left: "22%", top: "65%" } : { left: "14%", top: "55%" };
-  const impact = isSolo ? { left: "72%", top: "28%" } : { left: "83%", top: "65%" };
+  const impact = isSolo ? { left: "61%", top: "18%" } : { left: "83%", top: "65%" };
 
   return (
     <>
-      {/* Orbs — start at player character, fly toward enemy */}
-      <div style={{
-        position: "absolute", ...origin,
-        zIndex: 15, pointerEvents: "none",
-        "--wfx": flyX, "--wfy": flyY,
-      }}>
-        {WATER_ORBS.map((orb, i) => (
-          <div key={i} style={{
-            position: "absolute",
-            left: `${orb.ox}px`, top: `${orb.oy}px`,
-            width: `${orb.size}px`, height: `${orb.size}px`,
-            borderRadius: "50%",
-            background: "radial-gradient(circle at 30% 30%, #DDEEFF, #1188DD 50%, #005599)",
-            boxShadow: `0 0 ${Math.round(orb.size * 0.6)}px #55CCFF88, inset 0 0 ${Math.round(orb.size * 0.3)}px rgba(255,255,255,0.7)`,
-            animation: `waterOrbFly 0.88s cubic-bezier(0.25, 0.1, 0.3, 1) ${orb.delay}ms both`,
-          }} />
-        ))}
+      {/* ── Traveling water projectile ── */}
+      <div style={{ position: "absolute", ...origin, zIndex: 20, pointerEvents: "none", "--wfx": flyX, "--wfy": flyY }}>
+        {/* 5 satellite droplets orbiting the main orb */}
+        {Array.from({ length: 5 }, (_, i) => {
+          const a = (i / 5) * Math.PI * 2;
+          return (
+            <div key={i} style={{
+              position: "absolute",
+              left: Math.round(Math.cos(a) * 28), top: Math.round(Math.sin(a) * 28),
+              width: 10, height: 10, marginLeft: -5, marginTop: -5,
+              borderRadius: "50%",
+              background: "radial-gradient(circle at 30% 30%, #CCEEFF, #0099DD 55%, #005588)",
+              boxShadow: "0 0 8px #44CCFF88",
+              animation: `waterOrbFly 0.82s cubic-bezier(0.2,0.1,0.35,1) ${i * 28}ms both`,
+            }} />
+          );
+        })}
+        {/* Main orb */}
+        <div style={{
+          position: "absolute",
+          width: 60, height: 60, marginLeft: -30, marginTop: -30,
+          borderRadius: "50%",
+          background: "radial-gradient(circle at 32% 28%, #EEFFFF, #22AADD 34%, #0066AA 66%, #002244)",
+          boxShadow: "0 0 55px #00AAFF, 0 0 22px #44DDFF, inset 0 0 14px rgba(255,255,255,0.55)",
+          animation: "waterOrbFly 0.78s cubic-bezier(0.2,0.1,0.3,1) both",
+        }} />
+        {/* Specular gleam */}
+        <div style={{
+          position: "absolute",
+          width: 16, height: 16, marginLeft: -22, marginTop: -22,
+          borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(255,255,255,0.95), transparent)",
+          animation: "waterOrbFly 0.78s cubic-bezier(0.2,0.1,0.3,1) both",
+        }} />
       </div>
 
-      {/* Impact ripple at enemy position — timed to first orb arrival */}
+      {/* ── Impact (timed to ~0.8s) ── */}
+
+      {/* Blue-white flash */}
       <div style={{
         position: "absolute", ...impact,
-        width: 28, height: 28, marginLeft: -14, marginTop: -14,
+        width: 160, height: 160, marginLeft: -80, marginTop: -80,
         borderRadius: "50%",
-        border: "3px solid #55CCFF", boxShadow: "0 0 14px #55CCFF",
-        pointerEvents: "none", zIndex: 15,
-        animation: "waterImpact 0.55s ease-out 0.90s both",
+        background: "radial-gradient(circle, #FFFFFF 0%, rgba(100,220,255,0.88) 32%, transparent 64%)",
+        pointerEvents: "none", zIndex: 22,
+        animation: "wsFlash 0.32s ease-out 0.8s both",
+      }} />
+
+      {/* Central water burst */}
+      <div style={{
+        position: "absolute", ...impact,
+        width: 105, height: 105, marginLeft: -52, marginTop: -52,
+        borderRadius: "50%",
+        background: "radial-gradient(circle, #EEFFFF 0%, #22CCFF 28%, #0077BB 60%, rgba(0,40,90,0) 100%)",
+        boxShadow: "0 0 65px #00AAFF, 0 0 30px #44DDFF",
+        pointerEvents: "none", zIndex: 21,
+        animation: "wsBlast 0.68s ease-out 0.8s both",
+      }} />
+
+      {/* Ripple ring 1 — thin elegant water ring */}
+      <div style={{
+        position: "absolute", ...impact,
+        width: 20, height: 20, marginLeft: -10, marginTop: -10,
+        borderRadius: "50%",
+        border: "4px solid rgba(60,210,255,0.9)",
+        boxShadow: "0 0 12px #00BBFF, inset 0 0 6px rgba(180,240,255,0.35)",
+        pointerEvents: "none", zIndex: 22,
+        animation: "wsRipple 0.52s ease-out 0.82s both",
+      }} />
+
+      {/* Ripple ring 2 */}
+      <div style={{
+        position: "absolute", ...impact,
+        width: 20, height: 20, marginLeft: -10, marginTop: -10,
+        borderRadius: "50%",
+        border: "2px solid rgba(30,175,240,0.65)",
+        pointerEvents: "none", zIndex: 22,
+        animation: "wsRipple 0.58s ease-out 0.97s both",
+      }} />
+
+      {/* Ripple ring 3 */}
+      <div style={{
+        position: "absolute", ...impact,
+        width: 20, height: 20, marginLeft: -10, marginTop: -10,
+        borderRadius: "50%",
+        border: "1px solid rgba(15,145,215,0.45)",
+        pointerEvents: "none", zIndex: 22,
+        animation: "wsRipple 0.64s ease-out 1.12s both",
+      }} />
+
+      {/* Crown splash droplets — arc up then fall */}
+      {WATER_DROPS.map((d, i) => (
+        <div key={i} style={{
+          position: "absolute", ...impact,
+          width: d.size, height: d.size,
+          marginLeft: -d.size / 2, marginTop: -d.size / 2,
+          borderRadius: "50%",
+          background: "radial-gradient(circle at 32% 28%, #EEFFFF, #22AADD 55%, #004477)",
+          boxShadow: `0 0 ${d.size}px #00AAFFAA`,
+          pointerEvents: "none", zIndex: 22,
+          "--sx": d.sx, "--sy": d.sy,
+          animation: `wsSplash 0.68s ease-out ${d.delay}ms both`,
+        }} />
+      ))}
+
+      {/* Water mist / lingering spray */}
+      <div style={{
+        position: "absolute", ...impact,
+        width: 115, height: 115, marginLeft: -57, marginTop: -57,
+        borderRadius: "50%",
+        background: "radial-gradient(circle, rgba(80,190,255,0.38) 0%, rgba(40,140,220,0.16) 52%, transparent 75%)",
+        filter: "blur(13px)",
+        pointerEvents: "none", zIndex: 19,
+        animation: "crSmoke 1.1s ease-out 0.88s both",
       }} />
     </>
   );
 }
 
-// ── Pyreball burning-fireball animation ──────────────────────────────────────
-// Trailing flames stream BEHIND the travel direction (opposite of fly vector).
+// ── Pyreball — Clash Royale-style fireball ────────────────────────────────────
 const FIRE_TRAIL = [
-  { d: 12, size: 46, opa: 0.85, blur: 1 },
-  { d: 24, size: 36, opa: 0.70, blur: 2 },
-  { d: 35, size: 27, opa: 0.55, blur: 3 },
-  { d: 45, size: 19, opa: 0.40, blur: 4 },
-  { d: 53, size: 12, opa: 0.28, blur: 5 },
+  { d: 16,  size: 58, opa: 0.88, blur: 1 },
+  { d: 32,  size: 46, opa: 0.72, blur: 2 },
+  { d: 47,  size: 34, opa: 0.55, blur: 3 },
+  { d: 60,  size: 24, opa: 0.38, blur: 4 },
+  { d: 72,  size: 15, opa: 0.22, blur: 5 },
+  { d: 82,  size:  9, opa: 0.12, blur: 6 },
 ];
+
+// 12 embers scatter in all directions on impact
+const FIRE_EMBERS = Array.from({ length: 12 }, (_, i) => {
+  const angle = (i / 12) * Math.PI * 2;
+  const dist  = 55 + (i % 3) * 32;
+  const size  = [13, 9, 6][i % 3];
+  return {
+    ex: `${Math.round(Math.cos(angle) * dist)}px`,
+    ey: `${Math.round(Math.sin(angle) * dist)}px`,
+    size,
+    delay: 750 + i * 16,
+  };
+});
 
 function FireballEffect({ mode, onDone }) {
   useEffect(() => {
-    const t = setTimeout(onDone, 1700);
+    const t = setTimeout(onDone, 2000);
     return () => clearTimeout(t);
   }, [onDone]);
 
@@ -243,79 +343,181 @@ function FireballEffect({ mode, onDone }) {
   const origin = isSolo ? { left: "20%", top: "68%" } : { left: "14%", top: "55%" };
   const impact = isSolo ? { left: "64%", top: "18%" } : { left: "83%", top: "58%" };
 
-  // Unit vector opposite to travel → tail trails behind the fireball.
   const fx = parseFloat(flyX), fy = parseFloat(flyY);
   const fmag = Math.hypot(fx, fy) || 1;
   const back = { x: -fx / fmag, y: -fy / fmag };
 
-  const fire = "radial-gradient(circle at 40% 35%, #FFF6C8, #FFB100 35%, #FF4400 62%, rgba(170,21,0,0))";
-
   return (
     <>
-      <div style={{
-        position: "absolute", ...origin,
-        zIndex: 15, pointerEvents: "none",
-        "--wfx": flyX, "--wfy": flyY,
-      }}>
-        {/* whole flaming mass travels together */}
-        <div style={{ position: "relative", animation: "fireballFly 0.9s cubic-bezier(0.2,0,0.5,1) both" }}>
-          {/* trailing flames behind the head */}
-          {FIRE_TRAIL.map((t, i) => (
+      {/* ── Traveling fireball ── */}
+      <div style={{ position: "absolute", ...origin, zIndex: 20, pointerEvents: "none", "--wfx": flyX, "--wfy": flyY }}>
+        <div style={{ position: "relative", animation: "fireballFly 0.76s cubic-bezier(0.15,0,0.35,1) both" }}>
+          {/* Long fire trail */}
+          {FIRE_TRAIL.map((tr, i) => (
             <div key={i} style={{
               position: "absolute",
-              left: back.x * t.d, top: back.y * t.d,
-              width: t.size, height: t.size,
-              marginLeft: -t.size / 2, marginTop: -t.size / 2,
+              left: back.x * tr.d, top: back.y * tr.d,
+              width: tr.size, height: tr.size,
+              marginLeft: -tr.size / 2, marginTop: -tr.size / 2,
               borderRadius: "50%",
-              background: `radial-gradient(circle at 40% 35%, rgba(255,240,170,${t.opa}), rgba(255,120,0,${t.opa * 0.8}) 45%, rgba(200,30,0,0))`,
-              filter: `blur(${t.blur}px)`,
-              animation: `fireFlicker ${0.22 + i * 0.04}s ease-in-out ${i * 35}ms infinite`,
+              background: `radial-gradient(circle at 40% 35%, rgba(255,240,170,${tr.opa}), rgba(255,110,0,${tr.opa * 0.8}) 48%, rgba(200,30,0,0))`,
+              filter: `blur(${tr.blur}px)`,
+              animation: `fireFlicker ${0.2 + i * 0.04}s ease-in-out ${i * 30}ms infinite`,
             }} />
           ))}
-          {/* soft outer aura */}
+          {/* Outer glow aura */}
           <div style={{
-            position: "absolute", width: 84, height: 84, marginLeft: -42, marginTop: -42,
+            position: "absolute", width: 110, height: 110, marginLeft: -55, marginTop: -55,
             borderRadius: "50%",
-            background: "radial-gradient(circle, rgba(255,140,0,0.5), rgba(255,60,0,0.14) 60%, transparent 76%)",
-            filter: "blur(4px)",
-            animation: "fireFlicker 0.32s ease-in-out infinite",
+            background: "radial-gradient(circle, rgba(255,130,0,0.55), rgba(255,50,0,0.15) 55%, transparent 75%)",
+            filter: "blur(7px)",
+            animation: "fireFlicker 0.3s ease-in-out infinite",
           }} />
-          {/* main flame body */}
+          {/* Main sphere */}
           <div style={{
-            position: "absolute", width: 56, height: 56, marginLeft: -28, marginTop: -28,
+            position: "absolute", width: 76, height: 76, marginLeft: -38, marginTop: -38,
             borderRadius: "50%",
-            background: fire,
-            boxShadow: "0 0 40px #FF6600, 0 0 16px #FFAA00",
-            animation: "fireFlicker 0.26s ease-in-out 50ms infinite",
+            background: "radial-gradient(circle at 38% 35%, #FFFFFF, #FFE060 16%, #FF8C00 46%, #CC2000 76%)",
+            boxShadow: "0 0 65px #FF5500, 0 0 30px #FFAA00, 0 0 12px #FFFF88",
+            animation: "fireFlicker 0.21s ease-in-out 50ms infinite",
           }} />
-          {/* second flame body (offset, faster) for layered licking */}
+          {/* White-hot core */}
           <div style={{
-            position: "absolute", width: 40, height: 40, marginLeft: -20, marginTop: -24,
+            position: "absolute", width: 36, height: 36, marginLeft: -18, marginTop: -18,
             borderRadius: "50%",
-            background: "radial-gradient(circle at 45% 40%, #FFE680, #FF7300 50%, rgba(255,60,0,0))",
-            animation: "fireFlicker 0.19s ease-in-out 90ms infinite",
-          }} />
-          {/* white-hot core */}
-          <div style={{
-            position: "absolute", width: 22, height: 22, marginLeft: -11, marginTop: -11,
-            borderRadius: "50%",
-            background: "radial-gradient(circle, #FFFFFF, #FFE89A 60%, rgba(255,200,80,0))",
-            animation: "fireFlicker 0.16s ease-in-out 30ms infinite",
+            background: "radial-gradient(circle, #FFFFFF, rgba(255,240,180,0))",
+            animation: "fireFlicker 0.14s ease-in-out 20ms infinite",
           }} />
         </div>
       </div>
 
-      {/* fiery impact burst at Brimhat */}
+      {/* ── Impact (timed to land at ~0.76s) ── */}
+
+      {/* Bright white flash */}
       <div style={{
         position: "absolute", ...impact,
-        width: 60, height: 60, marginLeft: -30, marginTop: -30,
+        width: 190, height: 190, marginLeft: -95, marginTop: -95,
         borderRadius: "50%",
-        background: "radial-gradient(circle, #FFEE88 0%, #FF7700 35%, rgba(255,51,0,0.3) 65%, transparent 100%)",
-        boxShadow: "0 0 50px #FF6600, 0 0 18px #FFCC00",
-        pointerEvents: "none", zIndex: 15,
-        animation: "fireImpactBig 0.8s ease-out 0.92s both",
+        background: "radial-gradient(circle, #FFFFFF 0%, rgba(255,230,120,0.9) 32%, transparent 65%)",
+        pointerEvents: "none", zIndex: 22,
+        animation: "crImpactFlash 0.38s ease-out 0.76s both",
+      }} />
+
+      {/* Primary fire explosion */}
+      <div style={{
+        position: "absolute", ...impact,
+        width: 150, height: 150, marginLeft: -75, marginTop: -75,
+        borderRadius: "50%",
+        background: "radial-gradient(circle, #FFF8A0 0%, #FF9900 26%, #FF3300 56%, rgba(140,20,0,0) 100%)",
+        boxShadow: "0 0 90px #FF5500, 0 0 44px #FF9900",
+        pointerEvents: "none", zIndex: 21,
+        animation: "crBlastBurst 0.72s ease-out 0.76s both",
+      }} />
+
+      {/* Shockwave ring 1 */}
+      <div style={{
+        position: "absolute", ...impact,
+        width: 24, height: 24, marginLeft: -12, marginTop: -12,
+        borderRadius: "50%",
+        border: "5px solid rgba(255,175,55,0.95)",
+        boxShadow: "0 0 18px #FF8800, inset 0 0 8px rgba(255,210,110,0.5)",
+        pointerEvents: "none", zIndex: 22,
+        animation: "crBlastRing 0.52s ease-out 0.78s both",
+      }} />
+
+      {/* Shockwave ring 2 */}
+      <div style={{
+        position: "absolute", ...impact,
+        width: 24, height: 24, marginLeft: -12, marginTop: -12,
+        borderRadius: "50%",
+        border: "3px solid rgba(255,100,20,0.7)",
+        pointerEvents: "none", zIndex: 22,
+        animation: "crBlastRing 0.58s ease-out 0.93s both",
+      }} />
+
+      {/* Ember particles flying outward */}
+      {FIRE_EMBERS.map((e, i) => (
+        <div key={i} style={{
+          position: "absolute", ...impact,
+          width: e.size, height: e.size,
+          marginLeft: -e.size / 2, marginTop: -e.size / 2,
+          borderRadius: "50%",
+          background: "radial-gradient(circle, #FFEE88, #FF6600 70%)",
+          boxShadow: `0 0 ${e.size * 1.5}px #FF8800`,
+          pointerEvents: "none", zIndex: 22,
+          "--ex": e.ex, "--ey": e.ey,
+          animation: `crEmber 0.72s ease-out ${e.delay}ms both`,
+        }} />
+      ))}
+
+      {/* Lingering smoke cloud */}
+      <div style={{
+        position: "absolute", ...impact,
+        width: 130, height: 130, marginLeft: -65, marginTop: -65,
+        borderRadius: "50%",
+        background: "radial-gradient(circle, rgba(90,45,10,0.55) 0%, rgba(60,28,5,0.28) 52%, transparent 78%)",
+        filter: "blur(14px)",
+        pointerEvents: "none", zIndex: 19,
+        animation: "crSmoke 1.1s ease-out 0.88s both",
       }} />
     </>
+  );
+}
+
+// ── Persistent pink shield aura around the player character ──────────────────
+// Anchored at the character's feet (left≈360, bottom:0 within the bottom row).
+// Clouds spread upward; all use opacity transition so it fades smoothly when
+// the shield drains to 0.
+// Anchor sits at the character's lower-body centre.
+// ox = horizontal offset from anchor, oy = height above anchor (both in px).
+// Each cloud has its own border-radius + rotation so none look the same
+const SHIELD_CLOUDS = [
+  // ── ground / below-feet layer ─────────────────────────────────────────────
+  { w: 230, h: 72,  ox:   10, oy: -55, delay: 60,  dur: 4.2, rot:  2,  blur: 10, br: "50% 50% 46% 54% / 60% 58% 42% 40%" },
+  { w: 175, h: 60,  ox: -155, oy: -40, delay: 310, dur: 3.8, rot: -8,  blur: 11, br: "42% 58% 52% 48% / 55% 62% 38% 45%" },
+  { w: 165, h: 58,  ox:  158, oy: -45, delay: 520, dur: 4.0, rot:  7,  blur: 11, br: "55% 45% 48% 52% / 65% 54% 46% 35%" },
+  { w: 140, h: 52,  ox: -210, oy: -25, delay: 180, dur: 3.5, rot: -12, blur: 12, br: "48% 52% 44% 56% / 58% 60% 40% 42%" },
+  { w: 132, h: 50,  ox:  205, oy: -30, delay: 640, dur: 3.9, rot:  10, blur: 12, br: "54% 46% 50% 50% / 62% 52% 48% 38%" },
+  // ── low body / ankle level ────────────────────────────────────────────────
+  { w: 205, h: 82,  ox:  -8, oy:   8, delay: 0,   dur: 3.8, rot: -4,  blur: 6,  br: "52% 48% 44% 56% / 68% 62% 38% 32%" },
+  { w: 148, h: 68,  ox: -128, oy: 42, delay: 270, dur: 3.3, rot:  9,  blur: 8,  br: "40% 60% 55% 45% / 55% 48% 52% 38%" },
+  { w: 162, h: 62,  ox:  138, oy: 14, delay: 480, dur: 3.6, rot: -11, blur: 7,  br: "58% 42% 38% 62% / 72% 58% 42% 28%" },
+  // ── mid body ─────────────────────────────────────────────────────────────
+  { w: 125, h: 58,  ox: -142, oy: 108, delay: 140, dur: 3.1, rot:  6, blur: 9,  br: "45% 55% 60% 40% / 60% 44% 56% 40%" },
+  { w: 118, h: 54,  ox:  136, oy: 102, delay: 600, dur: 3.5, rot: -7, blur: 8,  br: "62% 38% 48% 52% / 50% 68% 32% 50%" },
+  { w: 188, h: 80,  ox:   20, oy:  84, delay: 520, dur: 3.0, rot:  3, blur: 5,  br: "48% 52% 42% 58% / 66% 60% 40% 34%" },
+  // ── upper body ────────────────────────────────────────────────────────────
+  { w: 140, h: 60,  ox:  -72, oy: 195, delay: 360, dur: 3.9, rot: 13, blur: 9,  br: "35% 65% 52% 48% / 58% 70% 30% 42%" },
+  { w: 130, h: 56,  ox:  105, oy: 188, delay: 700, dur: 3.4, rot: -9, blur: 8,  br: "55% 45% 46% 54% / 74% 50% 50% 26%" },
+  { w: 115, h: 50,  ox:   22, oy: 200, delay: 740, dur: 3.2, rot:  5, blur: 7,  br: "50% 50% 36% 64% / 65% 56% 44% 35%" },
+  { w: 100, h: 46,  ox: -178, oy: 170, delay: 420, dur: 3.7, rot: -14,blur: 10, br: "44% 56% 58% 42% / 52% 62% 38% 48%" },
+  { w:  92, h: 44,  ox:  168, oy: 155, delay: 200, dur: 3.2, rot:  11,blur: 9,  br: "60% 40% 44% 56% / 68% 46% 54% 32%" },
+];
+
+function ShieldAura({ active }) {
+  return (
+    <div style={{
+      position: "absolute", left: 520, bottom: 160,
+      width: 0, height: 0,
+      pointerEvents: "none", zIndex: 0,
+      opacity: active ? 1 : 0,
+      transition: "opacity 0.75s ease",
+    }}>
+      {SHIELD_CLOUDS.map((c, i) => (
+        <div key={i} style={{
+          position: "absolute",
+          left: c.ox - c.w / 2,
+          bottom: c.oy - c.h / 2,
+          width: c.w, height: c.h,
+          borderRadius: c.br,
+          transform: `rotate(${c.rot}deg)`,
+          background: "radial-gradient(ellipse at 48% 36%, rgba(255,240,228,1), rgba(255,210,195,0.92) 50%, rgba(255,175,162,0.55) 75%, rgba(255,150,145,0))",
+          boxShadow: "inset 0 -6px 16px rgba(200,85,65,0.14)",
+          filter: `blur(${c.blur}px)`,
+          animation: `shieldFloat ${c.dur}s ease-in-out ${c.delay}ms infinite`,
+        }} />
+      ))}
+    </div>
   );
 }
 
@@ -478,12 +680,10 @@ export default function Battle({
     let hostFloat = null, guestFloat = null;
 
     const applySpell = (caster, spell, acc, targetHP, targetSh, selfHP, selfSh, selfMaxHP) => {
-      if (acc < 30 && spell.type === "attack") {
-        const bf = Math.round(spell.baseDmg * 0.3);
+      if (acc < 70) {
+        const stat = spell.baseDmg ?? spell.baseShield ?? spell.baseHeal ?? 10;
+        const bf   = Math.round(stat * 0.3);
         return { targetHP, targetSh, selfHP: Math.max(0, selfHP - bf), selfSh, selfFloat: { amt: bf, type: "backfire" }, targetFloat: null, log: `💥 Backfire! ${caster.name} takes ${bf} damage!` };
-      }
-      if (acc < 30) {
-        return { targetHP, targetSh, selfHP, selfSh, selfFloat: null, targetFloat: null, log: `${caster.name}'s sigil fades...` };
       }
       const mult = acc / 100;
       if (spell.type === "attack") {
@@ -556,8 +756,9 @@ export default function Battle({
     const spell    = SPELLS.find((s) => s.id === selectedSpell);
     const powerMod = ch.dmgMult ?? 1;
 
-    if (accuracy < 30) {
-      const backfire = Math.round(spell.baseDmg * 0.3);
+    if (accuracy < 70) {
+      const stat     = spell.baseDmg ?? spell.baseShield ?? spell.baseHeal ?? 10;
+      const backfire = Math.round(stat * 0.3);
       setPlayerHP((prev) => Math.max(0, prev - backfire));
       triggerDmg("player", backfire, "backfire");
       setBattleLog((prev) => [...prev, `💥 Backfire! Sloppy glyph deals ${backfire} to you!`]);
@@ -902,13 +1103,14 @@ export default function Battle({
 
         {/* ── Bottom row ── */}
         <div style={{ flex: 1, display: "flex", minHeight: 0, position: "relative" }}>
+          <ShieldAura active={playerShield > 0} />
           <div style={{ flex: 1, display: "flex", alignItems: "flex-end", justifyContent: "flex-start", padding: "0 0 0 340px", minHeight: 0 }}>
             <img src={CHAR_IMAGES[selectedChar]} alt={ch.name}
-              style={{ maxHeight: "120%", width: "auto", filter: `drop-shadow(0 0 32px ${ch.color}77)`, animation: playerShaking ? "shake 0.45s ease" : "none", pointerEvents: "none" }}
+              style={{ maxHeight: "120%", width: "auto", filter: `drop-shadow(0 0 32px ${ch.color}77)`, animation: playerShaking ? "shake 0.45s ease" : "none", pointerEvents: "none", position: "relative", zIndex: 2 }}
             />
           </div>
 
-          <div style={{ position: "absolute", bottom: 80, left: "36%", width: 460, display: "flex", flexDirection: "column", gap: "12px" }}>
+          <div style={{ position: "absolute", bottom: 80, left: "36%", width: 460, display: "flex", flexDirection: "column", gap: "12px", zIndex: 3 }}>
             <HPCard
               name={ch.name}
               hp={playerHP} maxHP={playerMaxHP} shield={playerShield}

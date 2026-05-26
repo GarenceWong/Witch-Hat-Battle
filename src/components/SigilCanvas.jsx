@@ -32,27 +32,29 @@ export default function SigilCanvas({ spell, onComplete, accBonus = 0 }) {
     ctx.beginPath();
     let started = false;
     for (const p of template) {
-      if (p === null) {
-        ctx.stroke();
-        ctx.beginPath();
-        started = false;
-        continue;
-      }
-      if (!started) {
-        ctx.moveTo(p.x, p.y);
-        started = true;
-      } else {
-        ctx.lineTo(p.x, p.y);
-      }
+      if (p === null) { ctx.stroke(); ctx.beginPath(); started = false; continue; }
+      if (p.fill) continue; // filled circles rendered separately below
+      if (!started) { ctx.moveTo(p.x, p.y); started = true; }
+      else { ctx.lineTo(p.x, p.y); }
     }
     ctx.stroke();
     ctx.setLineDash([]);
+
+    // Filled-circle markers (e.g. solid dots on Healing Craft)
+    ctx.fillStyle = "rgba(120,80,40,0.25)";
+    for (const p of template) {
+      if (p && p.fill) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
 
     // Draw user strokes
     const validPoints = points.filter((p) => p !== null);
     if (validPoints.length > 1) {
       ctx.strokeStyle = done
-        ? accuracy >= 60
+        ? accuracy >= 70
           ? "#2C5E1A"
           : "#8B1A1A"
         : "#1A1A3A";
@@ -78,7 +80,7 @@ export default function SigilCanvas({ spell, onComplete, accBonus = 0 }) {
       if (penDown) ctx.stroke();
 
       // Glow on success
-      if (done && accuracy >= 60) {
+      if (done && accuracy >= 70) {
         ctx.shadowColor = "#C9A96E";
         ctx.shadowBlur = 15;
         ctx.strokeStyle = "rgba(201,169,110,0.4)";
@@ -106,7 +108,7 @@ export default function SigilCanvas({ spell, onComplete, accBonus = 0 }) {
 
     // Accuracy result text
     if (done && accuracy !== null) {
-      ctx.fillStyle = accuracy >= 60 ? "#2C5E1A" : "#8B1A1A";
+      ctx.fillStyle = accuracy >= 70 ? "#2C5E1A" : "#8B1A1A";
       ctx.font = "bold 28px Cinzel";
       ctx.textAlign = "center";
       ctx.fillText(`${accuracy}%`, 150, 155);
@@ -114,7 +116,7 @@ export default function SigilCanvas({ spell, onComplete, accBonus = 0 }) {
       ctx.fillText(
         accuracy >= 80
           ? "Perfect Cast!"
-          : accuracy >= 60
+          : accuracy >= 70
           ? "Spell Cast"
           : "Backfire!",
         150,

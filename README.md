@@ -11,14 +11,16 @@ A fan-made, browser-based spell-drawing battle game inspired by the anime **Witc
 
 ### Solo Mode — Duel the Brimhat Sorcerer
 - Turn-based battle against an AI opponent
-- Cast spells by drawing their sigil on a canvas — accuracy determines power
-- High accuracy → full effect · Low accuracy (< 30%) → backfire
+- Cast spells by tracing their sigil on a canvas — accuracy determines power
+- High accuracy → full effect · Low accuracy (< 70%) → backfire damage to yourself
+- Animated cast effects for every spell: fireball, watershot, and cloud shield
 
 ### Versus Mode — Cross Sigils with a Friend
 - Real-time **online multiplayer** via Firebase Realtime Database
 - Create a room and share a 6-character code, or join with a friend's code
 - Both players draw simultaneously — spells resolve at the same time
 - Supports **win**, **lose**, and **draw** outcomes (if both players fall in the same round)
+- Full cast animations and shield aura in multiplayer too
 
 ### Character Select
 - Choose from **4 playable apprentice witches**: Coco, Agott, Tetia, and Richeh
@@ -34,12 +36,14 @@ A fan-made, browser-based spell-drawing battle game inspired by the anime **Witc
 - Your witch in the bottom-left, the opponent in the top-right
 - **Sigil drawing mechanic**: select a spell, trace its sigil on the canvas
 - HP bars, shield tracking, floating damage numbers, and shake animations on hit
+- **Animated spell effects**: fireball with flame trail and ember scatter, water orb with crown splash and ripples, cloud puffs for shield cast
+- **Persistent shield aura**: warm peach cloud formation surrounds your character while a shield is active
 - Animated battle background with drifting sigil glyphs, sparkles, and rising embers
 - Live **Battle Log** showing the last 6 combat events
 - **Versus ready bar**: shows when each player has submitted their cast
 
 ### Result Screen
-- Victory, defeat, or draw screen with character-specific flavour text
+- Victory, defeat, or draw screen with distinct styling per outcome
 - Options to **Rematch**, pick a **New Witch**, or return to the homepage
 
 ---
@@ -48,26 +52,32 @@ A fan-made, browser-based spell-drawing battle game inspired by the anime **Witc
 
 | Character | HP  | Power | Passive |
 |-----------|-----|-------|---------|
-| **Coco**   | 100 | 10 | Accuracy Bonus — sigil drawings score higher |
-| **Agott**  | 85  | 13 | Attack Boost — attack spells deal 15% more damage |
-| **Tetia**  | 115 | 8  | Healing Touch — heal spells restore 30% more HP |
-| **Richeh** | 95  | 11 | Barrier Craft — shield spells block 20% more damage |
+| **Coco**   | 100 | 10 | Drawing Prodigy — sigil drawings score +10 accuracy |
+| **Agott**  | 85  | 13 | Raw Power — attack spells deal 15% more damage |
+| **Tetia**  | 115 | 8  | Arcane Shield — defense spells block 20% more |
+| **Richeh** | 95  | 11 | Mending Touch — heal spells restore 30% more HP |
 
 ---
 
 ## 📜 Spells
 
-Spells are being added one by one, each with a sigil based on the actual WHA source material.
+All four spells use sigils based on the actual WHA source material.
 
-| Spell | Type | Sigil | Difficulty |
-|-------|------|-------|------------|
-| **Watershot Seal** | Attack (30 DMG) | Outer ring + S-curve + water drop + T-keystones | ★★ |
-| **Healing Craft**  | Heal (25 HP)    | Circle + cross + 4 filled dots at cardinal points | ★★ |
+| Spell | Type | Effect | Difficulty |
+|-------|------|--------|------------|
+| **Watershot Seal** | Attack | 38 DMG | ★★★ |
+| **Pyreball Seal**  | Attack | 26 DMG | ★★ |
+| **Healing Craft**  | Heal   | 25 HP  | ★★ |
+| **Billowing Collection** | Defense | 35 Shield | ★★★ |
 
-The accuracy system scores each drawing on three components:
-- **Coverage** (45%) — how much of the template you traced
-- **Precision** (35%) — how little you drew outside the template
-- **Uniformity** (20%) — whether you covered all parts of the shape, not just one section
+### Accuracy System
+Each drawing is scored on three components:
+- **Coverage** — how much of the sigil template you traced
+- **Precision** — how little you drew outside the template lines
+- **Uniformity** — whether you covered all parts of the shape evenly
+
+Score **≥ 70%** → spell fires at full scaled power.  
+Score **< 70%** → **Backfire** — 30% of the spell's base stat is dealt back to you.
 
 ---
 
@@ -76,7 +86,7 @@ The accuracy system scores each drawing on three components:
 - **Vite** + **React** (functional components, hooks, inline styles)
 - **Canvas API** — freehand sigil drawing with multi-component accuracy scoring
 - **Firebase Realtime Database** — real-time multiplayer room sync (no backend server)
-- Custom CSS keyframe animations (floating glyphs, damage floats, shake, pulse)
+- Custom CSS keyframe animations (fireball travel, water splash, shield aura, damage floats, shake, pulse)
 
 ---
 
