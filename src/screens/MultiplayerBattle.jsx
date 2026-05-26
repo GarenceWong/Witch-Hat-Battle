@@ -105,9 +105,9 @@ const WATER_DROPS = Array.from({ length: 10 }, (_, i) => {
 
 function WaterShotEffect({ onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 1950); return () => clearTimeout(t); }, [onDone]);
-  const flyX = "62vw", flyY = "-6vh";
-  const origin = { left: "14%", top: "55%" };
-  const impact = { left: "83%", top: "65%" };
+  const flyX = "48vw", flyY = "-36vh";
+  const origin = { left: "22%", top: "65%" };
+  const impact = { left: "61%", top: "18%" };
   return (
     <>
       <div style={{ position: "absolute", ...origin, zIndex: 20, pointerEvents: "none", "--wfx": flyX, "--wfy": flyY }}>
@@ -145,9 +145,9 @@ const FIRE_EMBERS = Array.from({ length: 12 }, (_, i) => {
 
 function FireballEffect({ onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 2000); return () => clearTimeout(t); }, [onDone]);
-  const flyX = "62vw", flyY = "-6vh";
-  const origin = { left: "14%", top: "55%" };
-  const impact = { left: "83%", top: "58%" };
+  const flyX = "44vw", flyY = "-42vh";
+  const origin = { left: "20%", top: "68%" };
+  const impact = { left: "64%", top: "18%" };
   const fx = parseFloat(flyX), fy = parseFloat(flyY);
   const fmag = Math.hypot(fx, fy) || 1;
   const back = { x: -fx / fmag, y: -fy / fmag };
@@ -186,7 +186,7 @@ const CLOUD_PUFFS = [
 function CloudShieldEffect({ onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 2000); return () => clearTimeout(t); }, [onDone]);
   return (
-    <div style={{ position: "absolute", left: "18%", top: "50%", zIndex: 15, pointerEvents: "none" }}>
+    <div style={{ position: "absolute", left: "30%", top: "54%", zIndex: 15, pointerEvents: "none" }}>
       {CLOUD_PUFFS.map((puff, i) => (
         <div key={i} style={{ position: "absolute", left: `${puff.ox}px`, top: `${puff.oy}px`, width: `${puff.size}px`, height: `${Math.round(puff.size * 0.65)}px`, borderRadius: "50%", background: "radial-gradient(ellipse at 40% 35%, rgba(255,255,255,0.95), rgba(200,225,255,0.75) 50%, rgba(150,200,255,0.25))", boxShadow: `0 0 ${Math.round(puff.size * 0.4)}px rgba(180,220,255,0.55), inset 0 0 ${Math.round(puff.size * 0.3)}px rgba(255,255,255,0.35)`, animation: `cloudPuff 1.5s ease-out ${puff.delay}ms both` }} />
       ))}
