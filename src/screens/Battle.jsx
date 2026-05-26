@@ -13,6 +13,7 @@ import sfxPyreball  from "../assets/CastSFX/Pyreball Cast.wav";
 import sfxWater     from "../assets/CastSFX/Watershot.mp3";
 import sfxHealing   from "../assets/CastSFX/Healing.mp3";
 import sfxBillowing from "../assets/CastSFX/Billowing.mp3";
+import sfxSelfDmg   from "../assets/CastSFX/SelfDMG.mp3";
 
 const CHAR_IMAGES = { coco: cocoImg, agott: agottImg, tetia: tetiaImg, richeh: richehImg };
 const ENEMY_IMG   = "https://tongari-anime.com/main/assets/img/character/c_stand07.png";
@@ -185,6 +186,7 @@ function WaterShotEffect({ mode, onDone }) {
     const sfx = new Audio(sfxWater);
     sfx.volume = 0.6;
     sfx.play().catch(() => {});
+    return () => { sfx.pause(); sfx.currentTime = 0; };
   }, []);
   useEffect(() => {
     const t = setTimeout(onDone, 1950);
@@ -820,6 +822,7 @@ export default function Battle({
 
   // ── VS: submit my cast ────────────────────────────────────────────────────
   const handleSpellCastVs = async (accuracy) => {
+    if (accuracy < 70) Object.assign(new Audio(sfxSelfDmg), { volume: 0.6 }).play().catch(() => {});
     if (selectedSpell === "watershot_seal"      && accuracy >= 30) setWaterEffect(true);
     if (selectedSpell === "pyreball_seal"       && accuracy >= 30) setFireEffect(true);
     if (selectedSpell === "healing_craft"       && accuracy >= 30) setHealEffect(true);
@@ -843,6 +846,7 @@ export default function Battle({
       setPlayerHP((prev) => Math.max(0, prev - backfire));
       triggerDmg("player", backfire, "backfire");
       setBattleLog((prev) => [...prev, `💥 Backfire! Sloppy glyph deals ${backfire} to you!`]);
+      Object.assign(new Audio(sfxSelfDmg), { volume: 0.6 }).play().catch(() => {});
     } else {
       const mult = accuracy / 100;
       if (spell.type === "attack") {
@@ -942,7 +946,10 @@ export default function Battle({
   const isSoloMyTurn    = turn === "player" && !enemyTurnActive && !castingPhase;
 
   // ── Shared: sigil overlay ─────────────────────────────────────────────────
-  const SigilOverlay = () => castingPhase && castingSpell ? (
+  // Rendered as a plain JSX variable (not an inline component) so that Battle
+  // re-renders don't create a new component type and remount SigilCanvas,
+  // which would wipe the player's drawn strokes mid-drawing.
+  const sigilOverlay = castingPhase && castingSpell ? (
     <div style={{
       position: "absolute", inset: 0,
       background: "rgba(0,0,0,0.78)",
@@ -1106,7 +1113,7 @@ export default function Battle({
         {waterEffect  && <WaterShotEffect   mode="vs" onDone={() => setWaterEffect(false)}  />}
         {fireEffect   && <FireballEffect    mode="vs" onDone={() => setFireEffect(false)}   />}
         {healEffect   && <HealEffect            onDone={() => setHealEffect(false)}         />}
-        <SigilOverlay />
+        {sigilOverlay}
       </div>
     );
   }
@@ -1227,7 +1234,7 @@ export default function Battle({
       {waterEffect  && <WaterShotEffect   mode="solo" onDone={() => setWaterEffect(false)}  />}
       {fireEffect   && <FireballEffect    mode="solo" onDone={() => setFireEffect(false)}   />}
       {healEffect   && <HealEffect                   onDone={() => setHealEffect(false)}    />}
-      <SigilOverlay />
+      {sigilOverlay}
     </div>
   );
 }

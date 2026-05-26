@@ -13,6 +13,7 @@ import sfxPyreball  from "../assets/CastSFX/Pyreball Cast.wav";
 import sfxWater     from "../assets/CastSFX/Watershot.mp3";
 import sfxHealing   from "../assets/CastSFX/Healing.mp3";
 import sfxBillowing from "../assets/CastSFX/Billowing.mp3";
+import sfxSelfDmg   from "../assets/CastSFX/SelfDMG.mp3";
 
 const CHAR_IMAGES = { coco: cocoImg, agott: agottImg, tetia: tetiaImg, richeh: richehImg };
 
@@ -113,6 +114,7 @@ function WaterShotEffect({ onDone }) {
     const sfx = new Audio(sfxWater);
     sfx.volume = 0.6;
     sfx.play().catch(() => {});
+    return () => { sfx.pause(); sfx.currentTime = 0; };
   }, []);
   useEffect(() => { const t = setTimeout(onDone, 1950); return () => clearTimeout(t); }, [onDone]);
   const flyX = "48vw", flyY = "-36vh";
@@ -489,6 +491,7 @@ export default function MultiplayerBattle({ selectedChar, loadout, roomCode, pla
 
   // ── Submit cast ───────────────────────────────────────────────────────────
   const handleCast = async (accuracy) => {
+    if (accuracy < 70) Object.assign(new Audio(sfxSelfDmg), { volume: 0.6 }).play().catch(() => {});
     myLastSpell.current = selectedSpell;
     await update(ref(db, `rooms/${roomCode}/battle`), {
       [`${playerRole}Cast`]: { spellId: selectedSpell, accuracy },
