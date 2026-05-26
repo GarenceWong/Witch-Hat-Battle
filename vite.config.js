@@ -1,9 +1,10 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// GitHub Pages project sites are served from /<repo>/, so the production build
-// needs that base path for assets to resolve. Dev stays at root.
-export default defineConfig(({ command }) => ({
+// VITE_BASE_PATH lets each host set its own subpath.
+// GitHub Pages: set VITE_BASE_PATH=/Witch-Hat-Battle/ in the Actions workflow.
+// Vercel / root deployments: leave unset (defaults to /).
+export default defineConfig({
   plugins: [react()],
-  base: command === 'build' ? '/Witch-Hat-Battle/' : '/',
-}))
+  base: process.env.VITE_BASE_PATH ?? '/',
+})
