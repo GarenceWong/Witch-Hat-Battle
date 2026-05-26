@@ -8,7 +8,11 @@ import agottImg  from "../assets/agott.png";
 import tetiaImg  from "../assets/tetia.png";
 import richehImg from "../assets/richeh.png";
 import BattleBackground from "../components/BattleBackground.jsx";
-import battleMusic from "../assets/Chase Through Arcane Winds.mp3";
+import battleMusic  from "../assets/Chase Through Arcane Winds.mp3";
+import sfxPyreball  from "../assets/CastSFX/Pyreball Cast.wav";
+import sfxWater     from "../assets/CastSFX/Watershot.mp3";
+import sfxHealing   from "../assets/CastSFX/Healing.mp3";
+import sfxBillowing from "../assets/CastSFX/Billowing.mp3";
 
 const CHAR_IMAGES = { coco: cocoImg, agott: agottImg, tetia: tetiaImg, richeh: richehImg };
 const ENEMY_IMG   = "https://tongari-anime.com/main/assets/img/character/c_stand07.png";
@@ -178,6 +182,11 @@ const WATER_DROPS = Array.from({ length: 10 }, (_, i) => {
 
 function WaterShotEffect({ mode, onDone }) {
   useEffect(() => {
+    const sfx = new Audio(sfxWater);
+    sfx.volume = 0.6;
+    sfx.play().catch(() => {});
+  }, []);
+  useEffect(() => {
     const t = setTimeout(onDone, 1950);
     return () => clearTimeout(t);
   }, [onDone]);
@@ -234,8 +243,8 @@ function WaterShotEffect({ mode, onDone }) {
         width: 160, height: 160, marginLeft: -80, marginTop: -80,
         borderRadius: "50%",
         background: "radial-gradient(circle, #FFFFFF 0%, rgba(100,220,255,0.88) 32%, transparent 64%)",
-        pointerEvents: "none", zIndex: 22,
-        animation: "wsFlash 0.32s ease-out 0.8s both",
+        pointerEvents: "none", zIndex: 22, opacity: 0,
+        animation: "wsFlash 0.32s ease-out 0.8s forwards",
       }} />
 
       {/* Central water burst */}
@@ -245,8 +254,8 @@ function WaterShotEffect({ mode, onDone }) {
         borderRadius: "50%",
         background: "radial-gradient(circle, #EEFFFF 0%, #22CCFF 28%, #0077BB 60%, rgba(0,40,90,0) 100%)",
         boxShadow: "0 0 65px #00AAFF, 0 0 30px #44DDFF",
-        pointerEvents: "none", zIndex: 21,
-        animation: "wsBlast 0.68s ease-out 0.8s both",
+        pointerEvents: "none", zIndex: 21, opacity: 0,
+        animation: "wsBlast 0.68s ease-out 0.8s forwards",
       }} />
 
       {/* Ripple ring 1 — thin elegant water ring */}
@@ -256,8 +265,8 @@ function WaterShotEffect({ mode, onDone }) {
         borderRadius: "50%",
         border: "4px solid rgba(60,210,255,0.9)",
         boxShadow: "0 0 12px #00BBFF, inset 0 0 6px rgba(180,240,255,0.35)",
-        pointerEvents: "none", zIndex: 22,
-        animation: "wsRipple 0.52s ease-out 0.82s both",
+        pointerEvents: "none", zIndex: 22, opacity: 0,
+        animation: "wsRipple 0.52s ease-out 0.82s forwards",
       }} />
 
       {/* Ripple ring 2 */}
@@ -266,8 +275,8 @@ function WaterShotEffect({ mode, onDone }) {
         width: 20, height: 20, marginLeft: -10, marginTop: -10,
         borderRadius: "50%",
         border: "2px solid rgba(30,175,240,0.65)",
-        pointerEvents: "none", zIndex: 22,
-        animation: "wsRipple 0.58s ease-out 0.97s both",
+        pointerEvents: "none", zIndex: 22, opacity: 0,
+        animation: "wsRipple 0.58s ease-out 0.97s forwards",
       }} />
 
       {/* Ripple ring 3 */}
@@ -276,8 +285,8 @@ function WaterShotEffect({ mode, onDone }) {
         width: 20, height: 20, marginLeft: -10, marginTop: -10,
         borderRadius: "50%",
         border: "1px solid rgba(15,145,215,0.45)",
-        pointerEvents: "none", zIndex: 22,
-        animation: "wsRipple 0.64s ease-out 1.12s both",
+        pointerEvents: "none", zIndex: 22, opacity: 0,
+        animation: "wsRipple 0.64s ease-out 1.12s forwards",
       }} />
 
       {/* Crown splash droplets — arc up then fall */}
@@ -289,9 +298,9 @@ function WaterShotEffect({ mode, onDone }) {
           borderRadius: "50%",
           background: "radial-gradient(circle at 32% 28%, #EEFFFF, #22AADD 55%, #004477)",
           boxShadow: `0 0 ${d.size}px #00AAFFAA`,
-          pointerEvents: "none", zIndex: 22,
+          pointerEvents: "none", zIndex: 22, opacity: 0,
           "--sx": d.sx, "--sy": d.sy,
-          animation: `wsSplash 0.68s ease-out ${d.delay}ms both`,
+          animation: `wsSplash 0.68s ease-out ${d.delay}ms forwards`,
         }} />
       ))}
 
@@ -302,8 +311,8 @@ function WaterShotEffect({ mode, onDone }) {
         borderRadius: "50%",
         background: "radial-gradient(circle, rgba(80,190,255,0.38) 0%, rgba(40,140,220,0.16) 52%, transparent 75%)",
         filter: "blur(13px)",
-        pointerEvents: "none", zIndex: 19,
-        animation: "crSmoke 1.1s ease-out 0.88s both",
+        pointerEvents: "none", zIndex: 19, opacity: 0,
+        animation: "crSmoke 1.1s ease-out 0.88s forwards",
       }} />
     </>
   );
@@ -333,6 +342,12 @@ const FIRE_EMBERS = Array.from({ length: 12 }, (_, i) => {
 });
 
 function FireballEffect({ mode, onDone }) {
+  useEffect(() => {
+    const sfx = new Audio(sfxPyreball);
+    sfx.volume = 0.6;
+    sfx.play().catch(() => {});
+    return () => { sfx.pause(); sfx.currentTime = 0; };
+  }, []);
   useEffect(() => {
     const t = setTimeout(onDone, 2000);
     return () => clearTimeout(t);
@@ -401,7 +416,7 @@ function FireballEffect({ mode, onDone }) {
         borderRadius: "50%",
         background: "radial-gradient(circle, #FFFFFF 0%, rgba(255,230,120,0.9) 32%, transparent 65%)",
         pointerEvents: "none", zIndex: 22,
-        animation: "crImpactFlash 0.38s ease-out 0.76s both",
+        opacity: 0, animation: "crImpactFlash 0.38s ease-out 0.76s forwards",
       }} />
 
       {/* Primary fire explosion */}
@@ -412,7 +427,7 @@ function FireballEffect({ mode, onDone }) {
         background: "radial-gradient(circle, #FFF8A0 0%, #FF9900 26%, #FF3300 56%, rgba(140,20,0,0) 100%)",
         boxShadow: "0 0 90px #FF5500, 0 0 44px #FF9900",
         pointerEvents: "none", zIndex: 21,
-        animation: "crBlastBurst 0.72s ease-out 0.76s both",
+        opacity: 0, animation: "crBlastBurst 0.72s ease-out 0.76s forwards",
       }} />
 
       {/* Shockwave ring 1 */}
@@ -423,7 +438,7 @@ function FireballEffect({ mode, onDone }) {
         border: "5px solid rgba(255,175,55,0.95)",
         boxShadow: "0 0 18px #FF8800, inset 0 0 8px rgba(255,210,110,0.5)",
         pointerEvents: "none", zIndex: 22,
-        animation: "crBlastRing 0.52s ease-out 0.78s both",
+        opacity: 0, animation: "crBlastRing 0.52s ease-out 0.78s forwards",
       }} />
 
       {/* Shockwave ring 2 */}
@@ -433,7 +448,7 @@ function FireballEffect({ mode, onDone }) {
         borderRadius: "50%",
         border: "3px solid rgba(255,100,20,0.7)",
         pointerEvents: "none", zIndex: 22,
-        animation: "crBlastRing 0.58s ease-out 0.93s both",
+        opacity: 0, animation: "crBlastRing 0.58s ease-out 0.93s forwards",
       }} />
 
       {/* Ember particles flying outward */}
@@ -447,7 +462,7 @@ function FireballEffect({ mode, onDone }) {
           boxShadow: `0 0 ${e.size * 1.5}px #FF8800`,
           pointerEvents: "none", zIndex: 22,
           "--ex": e.ex, "--ey": e.ey,
-          animation: `crEmber 0.72s ease-out ${e.delay}ms both`,
+          opacity: 0, animation: `crEmber 0.72s ease-out ${e.delay}ms forwards`,
         }} />
       ))}
 
@@ -459,7 +474,7 @@ function FireballEffect({ mode, onDone }) {
         background: "radial-gradient(circle, rgba(90,45,10,0.55) 0%, rgba(60,28,5,0.28) 52%, transparent 78%)",
         filter: "blur(14px)",
         pointerEvents: "none", zIndex: 19,
-        animation: "crSmoke 1.1s ease-out 0.88s both",
+        opacity: 0, animation: "crSmoke 1.1s ease-out 0.88s forwards",
       }} />
     </>
   );
@@ -561,6 +576,52 @@ function CloudShieldEffect({ mode, onDone }) {
   );
 }
 
+// ── Healing Craft effect ──────────────────────────────────────────────────────
+// Sparkles distributed along the character body (feet → head)
+const HEAL_SPARKS = Array.from({ length: 18 }, (_, i) => {
+  const t  = i / 17;
+  const sy = Math.round(-15 - t * 330);          // feet (-15) to head (-345)
+  const sx = Math.round(Math.sin(i * 1.85) * 58); // side-to-side along body
+  return {
+    sx, sy,
+    hx: `${Math.round(Math.cos(i * 2.6) * 22)}px`,
+    hy: `${-(22 + (i % 4) * 13)}px`,             // rise upward 22–61px
+    size: [12, 9, 7, 5][i % 4],
+    delay: i * 65,
+  };
+});
+
+function HealEffect({ onDone }) {
+  useEffect(() => {
+    const sfx = new Audio(sfxHealing);
+    sfx.volume = 0.6;
+    sfx.play().catch(() => {});
+    const cut = setTimeout(() => { sfx.pause(); }, 900);
+    return () => { clearTimeout(cut); sfx.pause(); };
+  }, []);
+  useEffect(() => {
+    const t = setTimeout(onDone, 1800);
+    return () => clearTimeout(t);
+  }, [onDone]);
+  const anchor = { left: "29%", top: "90%" };
+  return (
+    <div style={{ position: "absolute", ...anchor, zIndex: 15, pointerEvents: "none" }}>
+      {/* Tall body glow column — covers feet to head */}
+      <div style={{ position: "absolute", width: 190, height: 420, marginLeft: -95, marginTop: -400, borderRadius: "45%", background: "radial-gradient(ellipse at 50% 60%, rgba(60,210,100,0.42), rgba(30,160,70,0.14) 55%, transparent 78%)", filter: "blur(22px)", opacity: 0, animation: "healBloom 1.7s ease-out forwards" }} />
+      {/* "+" symbols from head down to feet */}
+      <div style={{ position: "absolute", fontFamily: "Cinzel", fontSize: "52px", fontWeight: "bold", color: "#44EE88", textShadow: "0 0 18px #22CC66, 0 0 36px #11AA44", marginLeft: -14, marginTop: -345, opacity: 0, animation: "healFloat 1.6s ease-out forwards" }}>+</div>
+      <div style={{ position: "absolute", fontFamily: "Cinzel", fontSize: "32px", fontWeight: "bold", color: "#66FFAA", textShadow: "0 0 12px #33BB66", marginLeft: 34, marginTop: -265, opacity: 0, animation: "healFloat 1.4s ease-out 80ms forwards" }}>+</div>
+      <div style={{ position: "absolute", fontFamily: "Cinzel", fontSize: "30px", fontWeight: "bold", color: "#77FFAA", marginLeft: -52, marginTop: -210, opacity: 0, animation: "healFloat 1.4s ease-out 150ms forwards" }}>+</div>
+      <div style={{ position: "absolute", fontFamily: "Cinzel", fontSize: "24px", fontWeight: "bold", color: "#99FFCC", marginLeft: 18, marginTop: -145, opacity: 0, animation: "healFloat 1.2s ease-out 220ms forwards" }}>+</div>
+      <div style={{ position: "absolute", fontFamily: "Cinzel", fontSize: "20px", fontWeight: "bold", color: "#AAFFDD", marginLeft: -38, marginTop: -80, opacity: 0, animation: "healFloat 1.1s ease-out 300ms forwards" }}>+</div>
+      {/* Sparkles placed along the full body height */}
+      {HEAL_SPARKS.map((s, i) => (
+        <div key={i} style={{ position: "absolute", width: s.size, height: s.size, marginLeft: s.sx - s.size / 2, marginTop: s.sy - s.size / 2, borderRadius: "50%", background: "radial-gradient(circle, #CCFFDD, #33CC66 60%)", boxShadow: `0 0 ${s.size * 2}px #44EE88`, "--hx": s.hx, "--hy": s.hy, opacity: 0, animation: `healSparkle 1.1s ease-out ${s.delay}ms forwards` }} />
+      ))}
+    </div>
+  );
+}
+
 // ── Main Battle screen ────────────────────────────────────────────────────────
 export default function Battle({
   selectedChar, loadout,
@@ -584,6 +645,7 @@ export default function Battle({
   const [waterEffect,     setWaterEffect]     = useState(false);
   const [fireEffect,      setFireEffect]      = useState(false);
   const [cloudEffect,     setCloudEffect]     = useState(false);
+  const [healEffect,      setHealEffect]      = useState(false);
   const [muted,           setMuted]           = useState(false);
 
   const audioRef = useRef(null);
@@ -760,7 +822,8 @@ export default function Battle({
   const handleSpellCastVs = async (accuracy) => {
     if (selectedSpell === "watershot_seal"      && accuracy >= 30) setWaterEffect(true);
     if (selectedSpell === "pyreball_seal"       && accuracy >= 30) setFireEffect(true);
-    if (selectedSpell === "billowing_collection" && accuracy >= 30) setCloudEffect(true);
+    if (selectedSpell === "healing_craft"       && accuracy >= 30) setHealEffect(true);
+    if (selectedSpell === "billowing_collection" && accuracy >= 30) Object.assign(new Audio(sfxBillowing), { volume: 0.3 }).play().catch(() => {});
     await update(ref(db, `rooms/${roomCode}/battle`), {
       [`${playerRole}Cast`]: { spellId: selectedSpell, accuracy },
     });
@@ -790,18 +853,19 @@ export default function Battle({
         if (spell.id === "watershot_seal") setWaterEffect(true);
         if (spell.id === "pyreball_seal")  setFireEffect(true);
       } else if (spell.type === "defense") {
-        if (spell.id === "billowing_collection") setCloudEffect(true);
         const shieldMod = ch.shieldMult ?? 1;
         const shield = Math.round(spell.baseShield * mult * shieldMod);
         setPlayerShield((prev) => prev + shield);
         triggerDmg("player", shield, "shield");
         setBattleLog((prev) => [...prev, `${spell.icon} ${spell.name} grants ${shield} shield! (${accuracy}%)`]);
+        Object.assign(new Audio(sfxBillowing), { volume: 0.3 }).play().catch(() => {});
       } else if (spell.type === "heal") {
         const healMod = ch.healMult ?? 1;
         const heal = Math.round(spell.baseHeal * mult * healMod);
         setPlayerHP((prev) => Math.min(ch.hp, prev + heal));
         triggerDmg("player", heal, "heal");
         setBattleLog((prev) => [...prev, `${spell.icon} ${spell.name} heals ${heal} HP! (${accuracy}%)`]);
+        setHealEffect(true);
       }
     }
 
@@ -973,7 +1037,7 @@ export default function Battle({
                   transform: "scaleX(-1)",
                   filter: `drop-shadow(0 0 28px ${oppColor}88)`,
                   animation: enemyShaking ? "shake 0.45s ease" : !oppHasCast ? "enemyCast 1.6s infinite" : "none",
-                  pointerEvents: "none",
+                  pointerEvents: "none", position: "relative", zIndex: 25,
                 }}
               />
             ) : (
@@ -1041,7 +1105,7 @@ export default function Battle({
 
         {waterEffect  && <WaterShotEffect   mode="vs" onDone={() => setWaterEffect(false)}  />}
         {fireEffect   && <FireballEffect    mode="vs" onDone={() => setFireEffect(false)}   />}
-        {cloudEffect  && <CloudShieldEffect mode="vs" onDone={() => setCloudEffect(false)}  />}
+        {healEffect   && <HealEffect            onDone={() => setHealEffect(false)}         />}
         <SigilOverlay />
       </div>
     );
@@ -1110,7 +1174,7 @@ export default function Battle({
                   maxHeight: "300px", width: "auto", transform: "scaleX(-1)",
                   filter: `drop-shadow(0 0 28px ${ENEMY_DATA.color}99) brightness(0.75) sepia(0.4) hue-rotate(-15deg)`,
                   animation: enemyShaking ? "shake 0.45s ease" : isEnemyCasting ? "enemyCast 1.6s infinite" : "none",
-                  pointerEvents: "none",
+                  pointerEvents: "none", position: "relative", zIndex: 25,
                 }}
               />
             </div>
@@ -1162,7 +1226,7 @@ export default function Battle({
 
       {waterEffect  && <WaterShotEffect   mode="solo" onDone={() => setWaterEffect(false)}  />}
       {fireEffect   && <FireballEffect    mode="solo" onDone={() => setFireEffect(false)}   />}
-      {cloudEffect  && <CloudShieldEffect mode="solo" onDone={() => setCloudEffect(false)}  />}
+      {healEffect   && <HealEffect                   onDone={() => setHealEffect(false)}    />}
       <SigilOverlay />
     </div>
   );

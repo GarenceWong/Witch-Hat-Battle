@@ -8,7 +8,11 @@ import agottImg  from "../assets/agott.png";
 import tetiaImg  from "../assets/tetia.png";
 import richehImg from "../assets/richeh.png";
 import BattleBackground from "../components/BattleBackground.jsx";
-import battleMusic from "../assets/Innocence of a Curious Mind.mp3";
+import battleMusic  from "../assets/Innocence of a Curious Mind.mp3";
+import sfxPyreball  from "../assets/CastSFX/Pyreball Cast.wav";
+import sfxWater     from "../assets/CastSFX/Watershot.mp3";
+import sfxHealing   from "../assets/CastSFX/Healing.mp3";
+import sfxBillowing from "../assets/CastSFX/Billowing.mp3";
 
 const CHAR_IMAGES = { coco: cocoImg, agott: agottImg, tetia: tetiaImg, richeh: richehImg };
 
@@ -105,6 +109,11 @@ const WATER_DROPS = Array.from({ length: 10 }, (_, i) => {
 });
 
 function WaterShotEffect({ onDone }) {
+  useEffect(() => {
+    const sfx = new Audio(sfxWater);
+    sfx.volume = 0.6;
+    sfx.play().catch(() => {});
+  }, []);
   useEffect(() => { const t = setTimeout(onDone, 1950); return () => clearTimeout(t); }, [onDone]);
   const flyX = "48vw", flyY = "-36vh";
   const origin = { left: "22%", top: "65%" };
@@ -118,15 +127,15 @@ function WaterShotEffect({ onDone }) {
         <div style={{ position: "absolute", width: 60, height: 60, marginLeft: -30, marginTop: -30, borderRadius: "50%", background: "radial-gradient(circle at 32% 28%, #EEFFFF, #22AADD 34%, #0066AA 66%, #002244)", boxShadow: "0 0 55px #00AAFF, 0 0 22px #44DDFF, inset 0 0 14px rgba(255,255,255,0.55)", animation: "waterOrbFly 0.78s cubic-bezier(0.2,0.1,0.3,1) both" }} />
         <div style={{ position: "absolute", width: 16, height: 16, marginLeft: -22, marginTop: -22, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,255,255,0.95), transparent)", animation: "waterOrbFly 0.78s cubic-bezier(0.2,0.1,0.3,1) both" }} />
       </div>
-      <div style={{ position: "absolute", ...impact, width: 160, height: 160, marginLeft: -80, marginTop: -80, borderRadius: "50%", background: "radial-gradient(circle, #FFFFFF 0%, rgba(100,220,255,0.88) 32%, transparent 64%)", pointerEvents: "none", zIndex: 22, animation: "wsFlash 0.32s ease-out 0.8s both" }} />
-      <div style={{ position: "absolute", ...impact, width: 105, height: 105, marginLeft: -52, marginTop: -52, borderRadius: "50%", background: "radial-gradient(circle, #EEFFFF 0%, #22CCFF 28%, #0077BB 60%, rgba(0,40,90,0) 100%)", boxShadow: "0 0 65px #00AAFF, 0 0 30px #44DDFF", pointerEvents: "none", zIndex: 21, animation: "wsBlast 0.68s ease-out 0.8s both" }} />
-      <div style={{ position: "absolute", ...impact, width: 20, height: 20, marginLeft: -10, marginTop: -10, borderRadius: "50%", border: "4px solid rgba(60,210,255,0.9)", boxShadow: "0 0 12px #00BBFF, inset 0 0 6px rgba(180,240,255,0.35)", pointerEvents: "none", zIndex: 22, animation: "wsRipple 0.52s ease-out 0.82s both" }} />
-      <div style={{ position: "absolute", ...impact, width: 20, height: 20, marginLeft: -10, marginTop: -10, borderRadius: "50%", border: "2px solid rgba(30,175,240,0.65)", pointerEvents: "none", zIndex: 22, animation: "wsRipple 0.58s ease-out 0.97s both" }} />
-      <div style={{ position: "absolute", ...impact, width: 20, height: 20, marginLeft: -10, marginTop: -10, borderRadius: "50%", border: "1px solid rgba(15,145,215,0.45)", pointerEvents: "none", zIndex: 22, animation: "wsRipple 0.64s ease-out 1.12s both" }} />
+      <div style={{ position: "absolute", ...impact, width: 160, height: 160, marginLeft: -80, marginTop: -80, borderRadius: "50%", background: "radial-gradient(circle, #FFFFFF 0%, rgba(100,220,255,0.88) 32%, transparent 64%)", pointerEvents: "none", zIndex: 22, opacity: 0, animation: "wsFlash 0.32s ease-out 0.8s forwards" }} />
+      <div style={{ position: "absolute", ...impact, width: 105, height: 105, marginLeft: -52, marginTop: -52, borderRadius: "50%", background: "radial-gradient(circle, #EEFFFF 0%, #22CCFF 28%, #0077BB 60%, rgba(0,40,90,0) 100%)", boxShadow: "0 0 65px #00AAFF, 0 0 30px #44DDFF", pointerEvents: "none", zIndex: 21, opacity: 0, animation: "wsBlast 0.68s ease-out 0.8s forwards" }} />
+      <div style={{ position: "absolute", ...impact, width: 20, height: 20, marginLeft: -10, marginTop: -10, borderRadius: "50%", border: "4px solid rgba(60,210,255,0.9)", boxShadow: "0 0 12px #00BBFF, inset 0 0 6px rgba(180,240,255,0.35)", pointerEvents: "none", zIndex: 22, opacity: 0, animation: "wsRipple 0.52s ease-out 0.82s forwards" }} />
+      <div style={{ position: "absolute", ...impact, width: 20, height: 20, marginLeft: -10, marginTop: -10, borderRadius: "50%", border: "2px solid rgba(30,175,240,0.65)", pointerEvents: "none", zIndex: 22, opacity: 0, animation: "wsRipple 0.58s ease-out 0.97s forwards" }} />
+      <div style={{ position: "absolute", ...impact, width: 20, height: 20, marginLeft: -10, marginTop: -10, borderRadius: "50%", border: "1px solid rgba(15,145,215,0.45)", pointerEvents: "none", zIndex: 22, opacity: 0, animation: "wsRipple 0.64s ease-out 1.12s forwards" }} />
       {WATER_DROPS.map((d, i) => (
-        <div key={i} style={{ position: "absolute", ...impact, width: d.size, height: d.size, marginLeft: -d.size / 2, marginTop: -d.size / 2, borderRadius: "50%", background: "radial-gradient(circle at 32% 28%, #EEFFFF, #22AADD 55%, #004477)", boxShadow: `0 0 ${d.size}px #00AAFFAA`, pointerEvents: "none", zIndex: 22, "--sx": d.sx, "--sy": d.sy, animation: `wsSplash 0.68s ease-out ${d.delay}ms both` }} />
+        <div key={i} style={{ position: "absolute", ...impact, width: d.size, height: d.size, marginLeft: -d.size / 2, marginTop: -d.size / 2, borderRadius: "50%", background: "radial-gradient(circle at 32% 28%, #EEFFFF, #22AADD 55%, #004477)", boxShadow: `0 0 ${d.size}px #00AAFFAA`, pointerEvents: "none", zIndex: 22, opacity: 0, "--sx": d.sx, "--sy": d.sy, animation: `wsSplash 0.68s ease-out ${d.delay}ms forwards` }} />
       ))}
-      <div style={{ position: "absolute", ...impact, width: 115, height: 115, marginLeft: -57, marginTop: -57, borderRadius: "50%", background: "radial-gradient(circle, rgba(80,190,255,0.38) 0%, rgba(40,140,220,0.16) 52%, transparent 75%)", filter: "blur(13px)", pointerEvents: "none", zIndex: 19, animation: "crSmoke 1.1s ease-out 0.88s both" }} />
+      <div style={{ position: "absolute", ...impact, width: 115, height: 115, marginLeft: -57, marginTop: -57, borderRadius: "50%", background: "radial-gradient(circle, rgba(80,190,255,0.38) 0%, rgba(40,140,220,0.16) 52%, transparent 75%)", filter: "blur(13px)", pointerEvents: "none", zIndex: 19, opacity: 0, animation: "crSmoke 1.1s ease-out 0.88s forwards" }} />
     </>
   );
 }
@@ -145,7 +154,16 @@ const FIRE_EMBERS = Array.from({ length: 12 }, (_, i) => {
 });
 
 function FireballEffect({ onDone }) {
-  useEffect(() => { const t = setTimeout(onDone, 2000); return () => clearTimeout(t); }, [onDone]);
+  useEffect(() => {
+    const sfx = new Audio(sfxPyreball);
+    sfx.volume = 0.6;
+    sfx.play().catch(() => {});
+    return () => { sfx.pause(); sfx.currentTime = 0; };
+  }, []);
+  useEffect(() => {
+    const t = setTimeout(onDone, 2000);
+    return () => clearTimeout(t);
+  }, [onDone]);
   const flyX = "44vw", flyY = "-42vh";
   const origin = { left: "20%", top: "68%" };
   const impact = { left: "64%", top: "18%" };
@@ -164,14 +182,14 @@ function FireballEffect({ onDone }) {
           <div style={{ position: "absolute", width: 36, height: 36, marginLeft: -18, marginTop: -18, borderRadius: "50%", background: "radial-gradient(circle, #FFFFFF, rgba(255,240,180,0))", animation: "fireFlicker 0.14s ease-in-out 20ms infinite" }} />
         </div>
       </div>
-      <div style={{ position: "absolute", ...impact, width: 190, height: 190, marginLeft: -95, marginTop: -95, borderRadius: "50%", background: "radial-gradient(circle, #FFFFFF 0%, rgba(255,230,120,0.9) 32%, transparent 65%)", pointerEvents: "none", zIndex: 22, animation: "crImpactFlash 0.38s ease-out 0.76s both" }} />
-      <div style={{ position: "absolute", ...impact, width: 150, height: 150, marginLeft: -75, marginTop: -75, borderRadius: "50%", background: "radial-gradient(circle, #FFF8A0 0%, #FF9900 26%, #FF3300 56%, rgba(140,20,0,0) 100%)", boxShadow: "0 0 90px #FF5500, 0 0 44px #FF9900", pointerEvents: "none", zIndex: 21, animation: "crBlastBurst 0.72s ease-out 0.76s both" }} />
-      <div style={{ position: "absolute", ...impact, width: 24, height: 24, marginLeft: -12, marginTop: -12, borderRadius: "50%", border: "5px solid rgba(255,175,55,0.95)", boxShadow: "0 0 18px #FF8800, inset 0 0 8px rgba(255,210,110,0.5)", pointerEvents: "none", zIndex: 22, animation: "crBlastRing 0.52s ease-out 0.78s both" }} />
-      <div style={{ position: "absolute", ...impact, width: 24, height: 24, marginLeft: -12, marginTop: -12, borderRadius: "50%", border: "3px solid rgba(255,100,20,0.7)", pointerEvents: "none", zIndex: 22, animation: "crBlastRing 0.58s ease-out 0.93s both" }} />
+      <div style={{ position: "absolute", ...impact, width: 190, height: 190, marginLeft: -95, marginTop: -95, borderRadius: "50%", background: "radial-gradient(circle, #FFFFFF 0%, rgba(255,230,120,0.9) 32%, transparent 65%)", pointerEvents: "none", zIndex: 22, opacity: 0, animation: "crImpactFlash 0.38s ease-out 0.76s forwards" }} />
+      <div style={{ position: "absolute", ...impact, width: 150, height: 150, marginLeft: -75, marginTop: -75, borderRadius: "50%", background: "radial-gradient(circle, #FFF8A0 0%, #FF9900 26%, #FF3300 56%, rgba(140,20,0,0) 100%)", boxShadow: "0 0 90px #FF5500, 0 0 44px #FF9900", pointerEvents: "none", zIndex: 21, opacity: 0, animation: "crBlastBurst 0.72s ease-out 0.76s forwards" }} />
+      <div style={{ position: "absolute", ...impact, width: 24, height: 24, marginLeft: -12, marginTop: -12, borderRadius: "50%", border: "5px solid rgba(255,175,55,0.95)", boxShadow: "0 0 18px #FF8800, inset 0 0 8px rgba(255,210,110,0.5)", pointerEvents: "none", zIndex: 22, opacity: 0, animation: "crBlastRing 0.52s ease-out 0.78s forwards" }} />
+      <div style={{ position: "absolute", ...impact, width: 24, height: 24, marginLeft: -12, marginTop: -12, borderRadius: "50%", border: "3px solid rgba(255,100,20,0.7)", pointerEvents: "none", zIndex: 22, opacity: 0, animation: "crBlastRing 0.58s ease-out 0.93s forwards" }} />
       {FIRE_EMBERS.map((e, i) => (
-        <div key={i} style={{ position: "absolute", ...impact, width: e.size, height: e.size, marginLeft: -e.size / 2, marginTop: -e.size / 2, borderRadius: "50%", background: "radial-gradient(circle, #FFEE88, #FF6600 70%)", boxShadow: `0 0 ${e.size * 1.5}px #FF8800`, pointerEvents: "none", zIndex: 22, "--ex": e.ex, "--ey": e.ey, animation: `crEmber 0.72s ease-out ${e.delay}ms both` }} />
+        <div key={i} style={{ position: "absolute", ...impact, width: e.size, height: e.size, marginLeft: -e.size / 2, marginTop: -e.size / 2, borderRadius: "50%", background: "radial-gradient(circle, #FFEE88, #FF6600 70%)", boxShadow: `0 0 ${e.size * 1.5}px #FF8800`, pointerEvents: "none", zIndex: 22, "--ex": e.ex, "--ey": e.ey, opacity: 0, animation: `crEmber 0.72s ease-out ${e.delay}ms forwards` }} />
       ))}
-      <div style={{ position: "absolute", ...impact, width: 130, height: 130, marginLeft: -65, marginTop: -65, borderRadius: "50%", background: "radial-gradient(circle, rgba(90,45,10,0.55) 0%, rgba(60,28,5,0.28) 52%, transparent 78%)", filter: "blur(14px)", pointerEvents: "none", zIndex: 19, animation: "crSmoke 1.1s ease-out 0.88s both" }} />
+      <div style={{ position: "absolute", ...impact, width: 130, height: 130, marginLeft: -65, marginTop: -65, borderRadius: "50%", background: "radial-gradient(circle, rgba(90,45,10,0.55) 0%, rgba(60,28,5,0.28) 52%, transparent 78%)", filter: "blur(14px)", pointerEvents: "none", zIndex: 19, opacity: 0, animation: "crSmoke 1.1s ease-out 0.88s forwards" }} />
     </>
   );
 }
@@ -190,6 +208,48 @@ function CloudShieldEffect({ onDone }) {
     <div style={{ position: "absolute", left: "30%", top: "54%", zIndex: 15, pointerEvents: "none" }}>
       {CLOUD_PUFFS.map((puff, i) => (
         <div key={i} style={{ position: "absolute", left: `${puff.ox}px`, top: `${puff.oy}px`, width: `${puff.size}px`, height: `${Math.round(puff.size * 0.65)}px`, borderRadius: "50%", background: "radial-gradient(ellipse at 40% 35%, rgba(255,255,255,0.95), rgba(200,225,255,0.75) 50%, rgba(150,200,255,0.25))", boxShadow: `0 0 ${Math.round(puff.size * 0.4)}px rgba(180,220,255,0.55), inset 0 0 ${Math.round(puff.size * 0.3)}px rgba(255,255,255,0.35)`, animation: `cloudPuff 1.5s ease-out ${puff.delay}ms both` }} />
+      ))}
+    </div>
+  );
+}
+
+// ── Healing effect ────────────────────────────────────────────────────────────
+const HEAL_SPARKS = Array.from({ length: 18 }, (_, i) => {
+  const t  = i / 17;
+  const sy = Math.round(-15 - t * 330);
+  const sx = Math.round(Math.sin(i * 1.85) * 58);
+  return {
+    sx, sy,
+    hx: `${Math.round(Math.cos(i * 2.6) * 22)}px`,
+    hy: `${-(22 + (i % 4) * 13)}px`,
+    size: [12, 9, 7, 5][i % 4],
+    delay: i * 65,
+  };
+});
+
+function HealEffect({ onDone }) {
+  useEffect(() => {
+    const sfx = new Audio(sfxHealing);
+    sfx.volume = 0.6;
+    sfx.play().catch(() => {});
+    const cut = setTimeout(() => { sfx.pause(); }, 900);
+    return () => { clearTimeout(cut); sfx.pause(); };
+  }, []);
+  useEffect(() => {
+    const t = setTimeout(onDone, 1800);
+    return () => clearTimeout(t);
+  }, [onDone]);
+  const anchor = { left: "14%", top: "90%" };
+  return (
+    <div style={{ position: "absolute", ...anchor, zIndex: 15, pointerEvents: "none" }}>
+      <div style={{ position: "absolute", width: 190, height: 420, marginLeft: -95, marginTop: -400, borderRadius: "45%", background: "radial-gradient(ellipse at 50% 60%, rgba(60,210,100,0.42), rgba(30,160,70,0.14) 55%, transparent 78%)", filter: "blur(22px)", opacity: 0, animation: "healBloom 1.7s ease-out forwards" }} />
+      <div style={{ position: "absolute", fontFamily: "Cinzel", fontSize: "52px", fontWeight: "bold", color: "#44EE88", textShadow: "0 0 18px #22CC66, 0 0 36px #11AA44", marginLeft: -14, marginTop: -345, opacity: 0, animation: "healFloat 1.6s ease-out forwards" }}>+</div>
+      <div style={{ position: "absolute", fontFamily: "Cinzel", fontSize: "32px", fontWeight: "bold", color: "#66FFAA", textShadow: "0 0 12px #33BB66", marginLeft: 34, marginTop: -265, opacity: 0, animation: "healFloat 1.4s ease-out 80ms forwards" }}>+</div>
+      <div style={{ position: "absolute", fontFamily: "Cinzel", fontSize: "30px", fontWeight: "bold", color: "#77FFAA", marginLeft: -52, marginTop: -210, opacity: 0, animation: "healFloat 1.4s ease-out 150ms forwards" }}>+</div>
+      <div style={{ position: "absolute", fontFamily: "Cinzel", fontSize: "24px", fontWeight: "bold", color: "#99FFCC", marginLeft: 18, marginTop: -145, opacity: 0, animation: "healFloat 1.2s ease-out 220ms forwards" }}>+</div>
+      <div style={{ position: "absolute", fontFamily: "Cinzel", fontSize: "20px", fontWeight: "bold", color: "#AAFFDD", marginLeft: -38, marginTop: -80, opacity: 0, animation: "healFloat 1.1s ease-out 300ms forwards" }}>+</div>
+      {HEAL_SPARKS.map((s, i) => (
+        <div key={i} style={{ position: "absolute", width: s.size, height: s.size, marginLeft: s.sx - s.size / 2, marginTop: s.sy - s.size / 2, borderRadius: "50%", background: "radial-gradient(circle, #CCFFDD, #33CC66 60%)", boxShadow: `0 0 ${s.size * 2}px #44EE88`, "--hx": s.hx, "--hy": s.hy, opacity: 0, animation: `healSparkle 1.1s ease-out ${s.delay}ms forwards` }} />
       ))}
     </div>
   );
@@ -247,6 +307,7 @@ export default function MultiplayerBattle({ selectedChar, loadout, roomCode, pla
   const [waterEffect, setWaterEffect] = useState(false);
   const [fireEffect,  setFireEffect]  = useState(false);
   const [cloudEffect, setCloudEffect] = useState(false);
+  const [healEffect,  setHealEffect]  = useState(false);
   const [muted,       setMuted]       = useState(false);
 
   const audioRef = useRef(null);
@@ -336,11 +397,12 @@ export default function MultiplayerBattle({ selectedChar, loadout, roomCode, pla
         const oppF = lr ? (playerRole === "host" ? lr.guest : lr.host)  : null;
         if (myF)  triggerFloat("me",  myF.amt,  myF.type);
         if (oppF) triggerFloat("opp", oppF.amt, oppF.type);
-        // Trigger cast animation for the spell I submitted
+        // Trigger cast animation / SFX for the spell I submitted
         const sp = myLastSpell.current;
-        if (sp === "watershot_seal")       setWaterEffect(true);
-        if (sp === "pyreball_seal")        setFireEffect(true);
-        if (sp === "billowing_collection") setCloudEffect(true);
+        if (sp === "watershot_seal")        setWaterEffect(true);
+        if (sp === "pyreball_seal")         setFireEffect(true);
+        if (sp === "healing_craft")         setHealEffect(true);
+        if (sp === "billowing_collection")  Object.assign(new Audio(sfxBillowing), { volume: 0.3 }).play().catch(() => {});
         myLastSpell.current = null;
         setMyCastSubmitted(false);
         setCastingPhase(false);
@@ -521,7 +583,7 @@ export default function MultiplayerBattle({ selectedChar, loadout, roomCode, pla
                     transform: "scaleX(-1)",
                     filter: `drop-shadow(0 0 28px ${oppColor}88)`,
                     animation: oppShaking ? "shake 0.45s ease" : !oppHasCast && !battle?.winner ? "enemyCast 1.6s infinite" : "none",
-                    pointerEvents: "none",
+                    pointerEvents: "none", position: "relative", zIndex: 25,
                   }}
                 />
               ) : (
@@ -615,7 +677,7 @@ export default function MultiplayerBattle({ selectedChar, loadout, roomCode, pla
 
       {waterEffect && <WaterShotEffect onDone={() => setWaterEffect(false)} />}
       {fireEffect  && <FireballEffect  onDone={() => setFireEffect(false)}  />}
-      {cloudEffect && <CloudShieldEffect onDone={() => setCloudEffect(false)} />}
+      {healEffect  && <HealEffect      onDone={() => setHealEffect(false)}  />}
 
       {/* ── Sigil casting overlay ── */}
       {castingPhase && castingSpell && (
