@@ -493,12 +493,15 @@ export default function MultiplayerBattle({ selectedChar, loadout, roomCode, pla
   const handleCast = async (accuracy) => {
     if (accuracy < 70) Object.assign(new Audio(sfxSelfDmg), { volume: 0.6 }).play().catch(() => {});
     myLastSpell.current = selectedSpell;
-    await update(ref(db, `rooms/${roomCode}/battle`), {
-      [`${playerRole}Cast`]: { spellId: selectedSpell, accuracy },
-    });
+    // State must be set before the await: Firebase's local echo fires onValue
+    // synchronously during the update call, which can trigger resolveRound and
+    // reset myCastSubmitted to false. Setting it here ensures the correct order.
     setMyCastSubmitted(true);
     setCastingPhase(false);
     setSelectedSpell(null);
+    await update(ref(db, `rooms/${roomCode}/battle`), {
+      [`${playerRole}Cast`]: { spellId: selectedSpell, accuracy },
+    });
   };
 
   const castingSpell = selectedSpell ? SPELLS.find(s => s.id === selectedSpell) : null;
