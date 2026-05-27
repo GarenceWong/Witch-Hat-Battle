@@ -305,6 +305,7 @@ export default function MultiplayerBattle({ selectedChar, loadout, roomCode, pla
   const prevBattle    = useRef(null);
   const resolvingRef  = useRef(false);
   const myLastSpell   = useRef(null);
+  const navigatedRef  = useRef(false);
 
   const [waterEffect, setWaterEffect] = useState(false);
   const [fireEffect,  setFireEffect]  = useState(false);
@@ -397,21 +398,27 @@ export default function MultiplayerBattle({ selectedChar, loadout, roomCode, pla
         const lr   = b.lastRound;
         const myF  = lr ? (playerRole === "host" ? lr.host  : lr.guest) : null;
         const oppF = lr ? (playerRole === "host" ? lr.guest : lr.host)  : null;
-        if (myF)  triggerFloat("me",  myF.amt,  myF.type);
-        if (oppF) triggerFloat("opp", oppF.amt, oppF.type);
-        // Trigger cast animation / SFX for the spell I submitted
-        const sp = myLastSpell.current;
-        if (sp === "watershot_seal")        setWaterEffect(true);
-        if (sp === "pyreball_seal")         setFireEffect(true);
-        if (sp === "healing_craft")         setHealEffect(true);
-        if (sp === "billowing_collection")  Object.assign(new Audio(sfxBillowing), { volume: 0.3 }).play().catch(() => {});
+        if (myF  && myF.type  !== "none") triggerFloat("me",  myF.amt,  myF.type);
+        if (oppF && oppF.type !== "none") triggerFloat("opp", oppF.amt, oppF.type);
+        // Trigger cast animation / SFX only if the spell didn't backfire.
+        // Use the explicit flag — myF.type is unreliable because it gets overwritten
+        // by opponent's attack damage when both spells land in the same round.
+        const sp          = myLastSpell.current;
+        const didBackfire = lr ? (playerRole === "host" ? !!lr.hostBackfire : !!lr.guestBackfire) : false;
+        if (!didBackfire) {
+          if (sp === "watershot_seal")       setWaterEffect(true);
+          if (sp === "pyreball_seal")        setFireEffect(true);
+          if (sp === "healing_craft")        setHealEffect(true);
+          if (sp === "billowing_collection") { setCloudEffect(true); Object.assign(new Audio(sfxBillowing), { volume: 0.3 }).play().catch(() => {}); }
+        }
         myLastSpell.current = null;
         setMyCastSubmitted(false);
         setCastingPhase(false);
         setSelectedSpell(null);
       }
 
-      if (b.winner) {
+      if (b.winner && !navigatedRef.current) {
+        navigatedRef.current = true;
         setResult(b.winner === "draw" ? "draw" : b.winner === playerRole ? "win" : "lose");
         setTimeout(() => onNav("result"), 1200);
       }
@@ -472,10 +479,15 @@ export default function MultiplayerBattle({ selectedChar, loadout, roomCode, pla
     const newLog = [...(b.log ? Object.values(b.log) : []), ...logs]
       .reduce((acc, v, i) => ({ ...acc, [i]: v }), {});
 
-    // Use a sentinel so lastRound is never an empty object that Firebase deletes
+    // Use a sentinel so lastRound is never an empty object that Firebase deletes.
+    // hostBackfire / guestBackfire are stored explicitly because hostFloat/guestFloat
+    // can be overwritten by the opponent's attack on the same turn, making the type
+    // unreliable for determining whether the caster's own spell backfired.
     const lastRound = {
       host:  hostFloat  ?? { amt: 0, type: "none" },
       guest: guestFloat ?? { amt: 0, type: "none" },
+      hostBackfire:  b.hostCast.accuracy < 70,
+      guestBackfire: b.guestCast.accuracy < 70,
     };
 
     await update(ref(db, `rooms/${roomCode}/battle`), {
@@ -502,6 +514,15 @@ export default function MultiplayerBattle({ selectedChar, loadout, roomCode, pla
     await update(ref(db, `rooms/${roomCode}/battle`), {
       [`${playerRole}Cast`]: { spellId: selectedSpell, accuracy },
     });
+  };
+
+  // ── Flee: award the win to the opponent so they aren't left waiting ───────
+  const handleFlee = () => {
+    // Set guard first so our own onValue winner-handler doesn't bounce us to result
+    navigatedRef.current = true;
+    const opponent = playerRole === "host" ? "guest" : "host";
+    update(ref(db, `rooms/${roomCode}/battle`), { winner: opponent }).catch(() => {});
+    onNav("landing");
   };
 
   const castingSpell = selectedSpell ? SPELLS.find(s => s.id === selectedSpell) : null;
@@ -557,7 +578,7 @@ export default function MultiplayerBattle({ selectedChar, loadout, roomCode, pla
                 onMouseEnter={e => { e.currentTarget.style.color = "#C9A96E"; e.currentTarget.style.borderColor = "#C9A96E"; }}
                 onMouseLeave={e => { e.currentTarget.style.color = "#8B7355"; e.currentTarget.style.borderColor = "rgba(201,169,110,0.3)"; }}
               >Stay</button>
-              <button onClick={() => onNav("landing")} style={{ background: "rgba(139,26,26,0.25)", border: "1px solid rgba(139,26,26,0.5)", borderRadius: "8px", padding: "12px 28px", fontFamily: "Cinzel", fontSize: "13px", color: "#CC4444", cursor: "pointer", letterSpacing: "1px" }}>Flee</button>
+              <button onClick={handleFlee} style={{ background: "rgba(139,26,26,0.25)", border: "1px solid rgba(139,26,26,0.5)", borderRadius: "8px", padding: "12px 28px", fontFamily: "Cinzel", fontSize: "13px", color: "#CC4444", cursor: "pointer", letterSpacing: "1px" }}>Flee</button>
             </div>
           </div>
         </div>
@@ -681,9 +702,10 @@ export default function MultiplayerBattle({ selectedChar, loadout, roomCode, pla
         </div>
       </div>
 
-      {waterEffect && <WaterShotEffect onDone={() => setWaterEffect(false)} />}
-      {fireEffect  && <FireballEffect  onDone={() => setFireEffect(false)}  />}
-      {healEffect  && <HealEffect      onDone={() => setHealEffect(false)}  />}
+      {waterEffect && <WaterShotEffect  onDone={() => setWaterEffect(false)} />}
+      {fireEffect  && <FireballEffect   onDone={() => setFireEffect(false)}  />}
+      {cloudEffect && <CloudShieldEffect onDone={() => setCloudEffect(false)} />}
+      {healEffect  && <HealEffect       onDone={() => setHealEffect(false)}  />}
 
       {/* ── Sigil casting overlay ── */}
       {castingPhase && castingSpell && (
